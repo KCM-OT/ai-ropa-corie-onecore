@@ -26,4 +26,16 @@ npm start
 
 Then open http://localhost:4200.
 
+## Deploy
+
+Vercel can't reach Nexus, so the app is built on your machine and the output is uploaded
+(project `ai-ropa-corie-onecore` in the Onetrust PM-UX Vercel team):
+
+```bash
+npm run deploy          # production: https://ai-ropa-corie-onecore.vercel.app
+npm run deploy:preview  # a preview deployment
+```
+
+Pushing to GitHub does not deploy.
+
 See `CLAUDE.md` for how the project is put together and the rules for using OneCore.

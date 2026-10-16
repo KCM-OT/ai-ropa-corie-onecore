@@ -12,6 +12,13 @@ the OneCore design system (`@onetrust/onecore`, pinned to 0.7.0).
 - `@onetrust/onecore` comes from OneTrust Nexus (configured in `~/.npmrc`). It is not on public npm,
   so hosts without Nexus access (for example Vercel) cannot install it.
 
+## Deploy
+
+`npm run deploy` (production) or `npm run deploy:preview`. These run `vercel build` locally, where
+Nexus is reachable, then upload with `vercel deploy --prebuilt`. Vercel project:
+onetrustpmux-v0/ai-ropa-corie-onecore. Pushing to GitHub does not deploy. `vercel.json` rewrites
+every path to `index.html` so deep links work.
+
 ## Screens
 
 Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data and flow):

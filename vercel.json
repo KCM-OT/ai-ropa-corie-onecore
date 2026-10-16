@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npx npm@11 install",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/ropa-onecore/browser",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
