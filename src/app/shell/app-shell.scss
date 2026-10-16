@@ -1,61 +1,222 @@
 :host {
   display: block;
+
+  // The concept's sidebar is near-black (#0a0a0a). OneCore has no token that
+  // dark (its darkest surface is dark mode's rgb(26, 26, 26)), so the value is
+  // defined once here. Swap it for a token if OneCore adds one.
+  --app-sidebar-bg: rgb(10, 10, 10);
 }
 
-$nav-width: 240px;
-
-// The logo block and the side nav share $nav-width, so padding must sit inside
-// it or the logo block ends up wider than the nav below it.
-.brand,
-.side-nav {
-  box-sizing: border-box;
-}
+$sidebar-width: 256px;
+$rail-width: 48px;
+$icon-size: 18px;
+// Icons keep the same x position in both states, centred on the rail.
+$row-inset: ($rail-width - $icon-size) * 0.5;
 
 .shell {
   display: flex;
-  flex-direction: column;
   height: 100vh;
   overflow: hidden;
   background: var(--oc-background);
 }
 
-// Global top bar
+// Sidebar
 
-.top-bar {
+.sidebar {
+  position: relative;
   display: flex;
-  height: 48px;
+  flex-direction: column;
   flex-shrink: 0;
+  box-sizing: border-box;
+  width: $sidebar-width;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--oc-inverse-active) transparent;
+  background: var(--app-sidebar-bg);
+  color: var(--oc-foreground-on-dark);
+  font-size: var(--oc-font-size-sm);
+  transition: width var(--oc-motion-duration-settle) var(--oc-motion-easing-decelerate);
+
+  .collapsed & {
+    width: $rail-width;
+  }
 }
 
-.brand {
+.sidebar-header {
   display: flex;
   align-items: center;
-  gap: var(--oc-spacing-3);
-  width: $nav-width;
+  justify-content: space-between;
+  gap: var(--oc-spacing-2);
   flex-shrink: 0;
-  padding: 0 var(--oc-spacing-3);
-  background: var(--oc-primary);
-  color: var(--oc-foreground-on-dark);
+  height: 48px;
+  padding: 0 var(--oc-spacing-2) 0 $row-inset;
 
-  img {
-    height: 17px;
-    width: auto;
-  }
-
-  &--collapsed {
-    width: 48px;
+  .collapsed & {
     justify-content: center;
     padding: 0;
   }
 }
 
-.global {
+.logo {
   display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--oc-control-radius-sm);
+  background: none;
+  cursor: pointer;
+
+  img {
+    display: block;
+    height: 20px;
+    width: auto;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--oc-brand);
+    outline-offset: 2px;
+  }
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--oc-spacing-1);
+}
+
+.module-name {
+  flex-shrink: 0;
+  margin: var(--oc-spacing-2) 0 var(--oc-spacing-1);
+  padding: 0 $row-inset;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--oc-font-size-xs);
+  opacity: 0.6;
+  transition: opacity var(--oc-motion-duration-micro) var(--oc-motion-easing-standard);
+
+  .collapsed & {
+    opacity: 0;
+  }
+}
+
+.nav {
+  display: flex;
+  flex-shrink: 0; // let the sidebar scroll instead of squashing rows
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: var(--oc-spacing-4);
+}
+
+// A nav row: icon, label and (for groups) a chevron. Labels stay in the DOM
+// when collapsed; the sidebar's width transition clips them and they fade out.
+.row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--oc-spacing-3);
+  width: 100%;
+  min-height: 40px;
+  box-sizing: border-box;
+  padding: var(--oc-spacing-2) var(--oc-spacing-3) var(--oc-spacing-2) $row-inset;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--oc-motion-duration-micro) var(--oc-motion-easing-standard);
+
+  &:hover {
+    background: var(--oc-inverse-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--oc-brand);
+    outline-offset: -2px;
+  }
+
+  // Active: lighter surface, a 2px brand-green marker and a brand-green icon.
+  &.active {
+    background: var(--oc-inverse-active);
+    font-weight: 500;
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 2px;
+      background: var(--oc-brand);
+    }
+
+    .row-icon {
+      color: var(--oc-brand);
+    }
+  }
+}
+
+.row-icon {
+  flex-shrink: 0;
+  --oc-icon-size: #{$icon-size};
+  width: $icon-size;
+  height: $icon-size;
+}
+
+.row-label {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity var(--oc-motion-duration-micro) var(--oc-motion-easing-standard);
+
+  .collapsed & {
+    opacity: 0;
+  }
+}
+
+.caret {
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition:
+    transform var(--oc-motion-duration-micro) var(--oc-motion-easing-standard),
+    opacity var(--oc-motion-duration-micro) var(--oc-motion-easing-standard);
+
+  &.closed {
+    transform: rotate(-90deg);
+  }
+
+  .collapsed & {
+    opacity: 0;
+  }
+}
+
+// Nested links line up with their group's label.
+.row--nested {
+  min-height: 36px;
+  padding-left: $row-inset + $icon-size + 12px;
+}
+
+// Global top bar and page
+
+.workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.top-bar {
+  display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: var(--oc-spacing-2);
-  padding: 0 var(--oc-spacing-3) 0 var(--oc-spacing-4);
+  height: 48px;
+  box-sizing: border-box;
+  padding: 0 var(--oc-spacing-3) 0 var(--oc-spacing-5);
   border-bottom: var(--oc-container-border-width) solid var(--oc-border);
 }
 
@@ -73,113 +234,21 @@ $nav-width: 240px;
   max-width: 200px;
 }
 
-// Body: side nav + page
-
-.body {
-  display: flex;
-  flex: 1;
-  min-height: 0;
-}
-
 .main {
   position: relative; // contain visually-hidden absolute text so it can't overflow the page
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-width: 0;
+  min-height: 0;
   overflow: auto;
 }
 
-// Side nav
-
-.side-nav {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  width: $nav-width;
-  flex-shrink: 0;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--oc-inverse-active) transparent;
-  background: var(--oc-primary);
-  color: var(--oc-foreground-on-dark);
-  font-size: var(--oc-font-size-sm);
-
-  &--collapsed {
-    width: 48px;
-    align-items: center;
-    padding-top: var(--oc-spacing-3);
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .row,
+  .row-label,
+  .module-name,
+  .caret {
+    transition: none;
   }
-}
-
-.module {
-  display: flex;
-  align-items: center;
-  gap: var(--oc-spacing-2);
-  padding: var(--oc-spacing-3);
-  border-bottom: var(--oc-container-border-width) solid var(--oc-inverse-active);
-}
-
-.module-name {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.group {
-  border-bottom: var(--oc-container-border-width) solid var(--oc-inverse-active);
-}
-
-.group-items {
-  border-top: var(--oc-container-border-width) solid var(--oc-inverse-active);
-}
-
-.nav-link,
-.group-toggle {
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  width: 100%;
-  box-sizing: border-box;
-  padding: var(--oc-spacing-2) var(--oc-spacing-3) var(--oc-spacing-2) var(--oc-spacing-2);
-  border: 0;
-  border-left: 4px solid transparent;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  text-decoration: none;
-  cursor: pointer;
-
-  &:hover {
-    background: var(--oc-inverse-hover);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--oc-ring);
-    outline-offset: -2px;
-  }
-}
-
-.group-toggle {
-  justify-content: space-between;
-  padding-right: var(--oc-spacing-4);
-
-  oc-icon {
-    transition: transform var(--oc-motion-duration-state);
-
-    &.rotated {
-      transform: rotate(-90deg);
-    }
-  }
-}
-
-.nav-link--nested {
-  padding-left: var(--oc-spacing-5);
-}
-
-.nav-link.active {
-  border-left-color: var(--oc-ring);
-  background: var(--oc-inverse-active);
-  font-weight: var(--oc-font-weight-emphasis);
 }
