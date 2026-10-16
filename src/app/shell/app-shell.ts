@@ -31,7 +31,11 @@ export class AppShell {
   protected readonly userInitials = initials(SIGNED_IN_USER);
 
   protected readonly collapsed = signal(false);
-  protected readonly closedGroups = signal<ReadonlySet<string>>(new Set());
+  // Every group starts closed, so the sidebar opens as a short list of
+  // sections. A closed group still shows as active when you're on one of its pages.
+  protected readonly closedGroups = signal<ReadonlySet<string>>(
+    new Set(NAV.filter(isGroup).map((g) => g.label)),
+  );
 
   readonly #url = toSignal(
     this.#router.events.pipe(
