@@ -4,6 +4,13 @@
 
 $nav-width: 240px;
 
+// The logo block and the side nav share $nav-width, so padding must sit inside
+// it or the logo block ends up wider than the nav below it.
+.brand,
+.side-nav {
+  box-sizing: border-box;
+}
+
 .shell {
   display: flex;
   flex-direction: column;
