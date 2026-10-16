@@ -1,0 +1,273 @@
+<app-page-header title="Author with AI">
+  <p class="crumbs"><a routerLink="/processing-activities">Processing activities</a> / New record</p>
+</app-page-header>
+
+<div class="path">
+  <oc-path [activeIndex]="stepIndex()" (activeIndexChange)="goToStep($event)">
+    <oc-path-step label="Describe the activity" />
+    <oc-path-step label="Review the draft" />
+  </oc-path>
+</div>
+
+<div class="content">
+  <div class="column">
+    <oc-alert
+      intent="info"
+      size="sm"
+      [dismissible]="false"
+      title="Prototype"
+      description="Rule-based drafting from the ropa-authoring skill. Every value quotes your text. No AI model is connected yet."
+    />
+
+    <input #fileInput type="file" accept=".txt,.md,.csv,text/plain" hidden (change)="onFile($event)" />
+
+    @if (step() === 'describe') {
+      <oc-card>
+        <oc-card-header>
+          <oc-card-title>Describe the activity</oc-card-title>
+          <oc-card-description>Tell us what your team does with people's data. AI drafts the record for you to check.</oc-card-description>
+        </oc-card-header>
+
+        <oc-card-content>
+          <div class="form">
+            <div class="grid-2">
+              <oc-form-field>
+                <label oc-label>Activity name</label>
+                <oc-input
+                  name="activityName"
+                  placeholder="e.g. Candidate screening"
+                  required
+                  [ngModel]="name()"
+                  (ngModelChange)="name.set($event ?? '')"
+                />
+                <p oc-error validator="required">Add a name for this activity.</p>
+              </oc-form-field>
+
+              <oc-form-field>
+                <label oc-label>Owning entity</label>
+                <oc-select
+                  name="owningEntity"
+                  placeholder="Select a company"
+                  required
+                  [displayWith]="subsidiaryLabel"
+                  [ngModel]="subsidiaryId()"
+                  (ngModelChange)="subsidiaryId.set($event)"
+                >
+                  @for (s of subsidiaries; track s.id) {
+                    <oc-select-option [value]="s.id">{{ s.name }}</oc-select-option>
+                  }
+                </oc-select>
+                <p oc-description>The group company that owns this activity.</p>
+                <p oc-error validator="required">Choose the company that owns this activity.</p>
+              </oc-form-field>
+            </div>
+
+            <oc-form-field>
+              <label oc-label>Your role in this activity</label>
+              <oc-radio-group name="role" orientation="horizontal" [ngModel]="role()" (ngModelChange)="role.set($event)">
+                @for (r of roles; track r) {
+                  <button oc-radio-item [value]="r">{{ roleLabels[r] }}</button>
+                }
+              </oc-radio-group>
+              <p oc-description>{{ roleHelp[role()] }}</p>
+            </oc-form-field>
+
+            <oc-form-field>
+              <label oc-label>Describe what your team does with people's data</label>
+              <textarea
+                oc-textarea
+                name="description"
+                rows="9"
+                required
+                placeholder="Who the data is about, what you collect, why, which tools and vendors are involved, how long you keep it, and where it's stored."
+                [ngModel]="description()"
+                (ngModelChange)="description.set($event ?? '')"
+              ></textarea>
+              <p oc-error validator="required">Describe the activity, or upload a document.</p>
+            </oc-form-field>
+
+            <div class="source-actions">
+              <button oc-button variant="secondary" size="sm" (click)="chooseFile()">
+                <oc-icon slot="leading" name="paperclip" />
+                Upload a document
+              </button>
+              <button oc-button variant="tertiary" size="sm" (click)="useSample()">Use a sample description</button>
+              @if (fileName(); as f) {
+                <oc-tag size="sm" removable [removeLabel]="'Remove ' + f" (remove)="fileName.set(undefined)">Loaded {{ f }}</oc-tag>
+              }
+              @if (fileError(); as err) {
+                <span class="error">{{ err }}</span>
+              }
+            </div>
+          </div>
+        </oc-card-content>
+
+        <oc-card-footer>
+          <button oc-button variant="secondary" (click)="cancel()">Cancel</button>
+          <button oc-button variant="accent" [disabled]="!canDraft()" (click)="draft()">
+            <oc-icon slot="leading" name="ai-sparkles" />
+            Draft record
+          </button>
+        </oc-card-footer>
+      </oc-card>
+    } @else if (drafting()) {
+      <oc-card>
+        <oc-card-content>
+          <div class="drafting" role="status">
+            <oc-loading size="lg" />
+            <p class="drafting-title">Drafting your record…</p>
+            <p class="muted">Reading your description, quoting the evidence for each value and matching it to your inventory.</p>
+          </div>
+        </oc-card-content>
+      </oc-card>
+    } @else {
+      <!-- Summary -->
+      <oc-card>
+        <oc-card-content>
+          <div class="summary">
+            <div>
+              <h2>{{ name() }}</h2>
+              <p class="muted">{{ roleLabels[role()] }} · {{ subsidiaryLabel(subsidiaryId()) }}</p>
+            </div>
+            <dl class="summary-stats">
+              <div>
+                <dd [class.warn]="score() < 80" [class.good]="score() >= 80">{{ score() }}%</dd>
+                <dt>Complete</dt>
+              </div>
+              <div>
+                <dd>{{ fields().length }}</dd>
+                <dt>AI suggestions</dt>
+              </div>
+              <div>
+                <dd>{{ missing().length }}</dd>
+                <dt>Questions</dt>
+              </div>
+            </dl>
+          </div>
+        </oc-card-content>
+      </oc-card>
+
+      <!-- Suggested values -->
+      <oc-card>
+        <oc-card-header>
+          <oc-card-title>Suggested values</oc-card-title>
+          <oc-card-description>Each value quotes the text it came from. Edit anything that's wrong.</oc-card-description>
+        </oc-card-header>
+        <oc-card-content>
+          @if (fields().length === 0) {
+            <p class="muted">Nothing in the description supported a field. Answer the questions below.</p>
+          }
+          <ul class="stack">
+            @for (f of fields(); track f.key) {
+              <li class="suggestion">
+                <oc-form-field>
+                  <div class="label-row">
+                    <label oc-label>{{ f.label }}</label>
+                    @if (f.meta; as m) {
+                      <oc-status size="sm" [intent]="confidenceIntent(m.confidence)" [label]="confidenceLabel(m.confidence)" intentLabel="confidence" />
+                    }
+                  </div>
+                  <oc-input [name]="'field-' + f.key" [ngModel]="f.value" (ngModelChange)="editField(f.key, $event ?? '')" />
+                </oc-form-field>
+                @if (f.meta; as m) {
+                  <blockquote>“{{ m.evidence }}”</blockquote>
+                  <p class="rationale">
+                    @if (m.provenance === 'user') {
+                      <strong>Edited by you.</strong>
+                    }
+                    {{ m.rationale }}
+                  </p>
+                }
+              </li>
+            }
+          </ul>
+        </oc-card-content>
+      </oc-card>
+
+      <!-- Follow-up questions -->
+      @if (questions().length > 0) {
+        <oc-card>
+          <oc-card-header>
+            <oc-card-title>A few questions to finish the record</oc-card-title>
+            <oc-card-description>The description didn't cover these. Your answers are saved as your own values.</oc-card-description>
+          </oc-card-header>
+          <oc-card-content>
+            <ul class="stack">
+              @for (q of questions(); track q.key) {
+                <li>
+                  <oc-form-field>
+                    <label oc-label>{{ q.label }}</label>
+                    <oc-input [name]="'question-' + q.key" [ngModel]="answers()[q.key] ?? ''" (ngModelChange)="answer(q.key, $event ?? '')" />
+                    <p oc-description>{{ q.prompt }}</p>
+                  </oc-form-field>
+                </li>
+              }
+            </ul>
+          </oc-card-content>
+        </oc-card>
+      }
+
+      <!-- Linked inventory -->
+      <oc-card>
+        <oc-card-header>
+          <oc-card-title>Linked inventory</oc-card-title>
+          <oc-card-description>Vendors, assets and data categories from your inventory that the description names.</oc-card-description>
+        </oc-card-header>
+        <oc-card-content>
+          @if (relationships().length === 0) {
+            <p class="muted">No vendors, assets or data categories from your inventory were named.</p>
+          } @else {
+            <ul class="stack">
+              @for (r of relationships(); track r.type + r.name; let i = $index) {
+                <li class="relationship" [class.rejected]="r.status === 'rejected'">
+                  <div class="rel-main">
+                    <oc-badge size="sm" color="blue">{{ relationshipLabel[r.type] }}</oc-badge>
+                    <div class="rel-title">
+                      <span class="rel-name">{{ r.name }}</span>
+                      <oc-status size="sm" [intent]="confidenceIntent(r.confidence)" [label]="confidenceLabel(r.confidence)" intentLabel="confidence" />
+                    </div>
+                    <p class="rationale">“{{ r.evidence }}” · {{ r.rationale }}</p>
+                  </div>
+                  <div class="rel-actions">
+                    <button
+                      oc-button
+                      size="sm"
+                      [variant]="r.status === 'accepted' ? 'primary' : 'secondary'"
+                      [attr.aria-pressed]="r.status === 'accepted'"
+                      (click)="setRelStatus(i, 'accepted')"
+                    >
+                      @if (r.status === 'accepted') {
+                        <oc-icon slot="leading" name="check" />
+                      }
+                      Accept
+                    </button>
+                    <button
+                      oc-button
+                      size="sm"
+                      [variant]="r.status === 'rejected' ? 'destructive' : 'tertiary'"
+                      [attr.aria-pressed]="r.status === 'rejected'"
+                      (click)="setRelStatus(i, 'rejected')"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </oc-card-content>
+      </oc-card>
+
+      <div class="review-actions">
+        <button oc-button variant="secondary" (click)="step.set('describe')">
+          <oc-icon slot="leading" name="chevron-left" />
+          Back to description
+        </button>
+        <div class="submit">
+          <span class="muted">A reviewer approves it before it becomes a record.</span>
+          <button oc-button variant="primary" (click)="submit()">Send to Pending inventory</button>
+        </div>
+      </div>
+    }
+  </div>
+</div>

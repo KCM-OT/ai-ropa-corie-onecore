@@ -1,0 +1,128 @@
+<app-page-header title="Pending inventory" [stats]="stats()">
+  <p class="description">Review changes to your inventory records to maintain the accuracy of your data map.</p>
+  <a class="tips" href="#" (click)="$event.preventDefault()">View tips about reviewing your data map.</a>
+</app-page-header>
+
+@if (justSent(); as sent) {
+  <div class="banner" role="status">
+    <oc-alert
+      intent="success"
+      [dismissible]="false"
+      [title]="sent.name + ' is waiting for approval'"
+      description="It becomes a processing activity once a reviewer approves it."
+    />
+    <a oc-button variant="secondary" size="sm" routerLink="/processing-activities">Back to processing activities</a>
+  </div>
+}
+
+<div class="toolbar">
+  <div class="toolbar-row">
+    <h2>Pending records <span class="count">({{ rows().length }})</span></h2>
+    <div class="tools">
+      <oc-input
+        class="search"
+        size="sm"
+        type="search"
+        placeholder="Search"
+        ariaLabel="Search pending inventory"
+        clearable
+        [ngModel]="query()"
+        (ngModelChange)="setQuery($event)"
+      >
+        <oc-icon slot="leading" name="magnifying-glass" />
+      </oc-input>
+      <button oc-icon-button variant="tertiary" size="sm" label="Refresh"><oc-icon name="arrows-rotate" /></button>
+      <button oc-button variant="secondary" size="sm">Manage rules</button>
+      <button oc-button variant="primary" size="sm">Add inventory</button>
+    </div>
+  </div>
+  <div>
+    <button oc-button variant="tertiary" size="sm">
+      <oc-icon slot="leading" name="plus" />
+      Add filter
+    </button>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table class="data-table">
+    <colgroup>
+      <col style="width: 60px" />
+      <col style="width: 72px" />
+      <col />
+      <col style="width: 136px" />
+      <col style="width: 168px" />
+      <col style="width: 128px" />
+      <col style="width: 184px" />
+      <col style="width: 136px" />
+    </colgroup>
+    <thead>
+      <tr>
+        <th scope="col"><span class="visually-hidden">Actions</span></th>
+        <th scope="col" class="right">ID</th>
+        <th scope="col" [attr.aria-sort]="ariaSort('name')">
+          <button type="button" class="sort-button" (click)="onSort('name')">Name <oc-icon size="sm" [name]="sortIcon('name')" /></button>
+        </th>
+        <th scope="col">Review type</th>
+        <th scope="col">Inventory type</th>
+        <th scope="col">Source type</th>
+        <th scope="col">Owner</th>
+        <th scope="col" [attr.aria-sort]="ariaSort('lastUpdated')">
+          <button type="button" class="sort-button" (click)="onSort('lastUpdated')">Last updated <oc-icon size="sm" [name]="sortIcon('lastUpdated')" /></button>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (r of visible(); track r.id) {
+        <tr [class.selected]="r.id === justSent()?.id" [class.ai-row]="r.aiDraft && r.id !== justSent()?.id">
+          <td>
+            <button oc-icon-button variant="tertiary" size="sm" [label]="'Actions for ' + r.name" [tooltip]="false" [ocMenuTrigger]="rowMenu">
+              <oc-icon name="ellipsis" />
+            </button>
+            <ng-template #rowMenu>
+              <oc-menu>
+                @if (r.aiDraft) {
+                  <button oc-menu-item disabled>Review and approve</button>
+                  <button oc-menu-item variant="destructive" (click)="withdraw(r.id)">Withdraw draft</button>
+                } @else {
+                  <button oc-menu-item>Approve</button>
+                  <button oc-menu-item>Reject</button>
+                }
+              </oc-menu>
+            </ng-template>
+          </td>
+          <td class="num right">{{ r.id }}</td>
+          <td>
+            <span class="name-cell">
+              <span class="name">
+                <a class="cell-link" href="#" [title]="r.name" (click)="$event.preventDefault()">{{ r.name }}</a>
+                @if (r.aiDraft; as ai) {
+                  <oc-badge size="sm" color="purple">AI draft · {{ ai.completeness }}%</oc-badge>
+                }
+              </span>
+              <button oc-icon-button variant="tertiary" size="xs" [label]="'Preview ' + r.name" [tooltip]="false">
+                <oc-icon name="file-magnifying-glass" />
+              </button>
+            </span>
+          </td>
+          <td>{{ r.reviewType }}</td>
+          <td>{{ r.inventoryType }}</td>
+          <td [class.muted]="!r.sourceType">{{ r.sourceType ?? '—' }}</td>
+          <td>
+            <span class="cell-person">
+              <oc-avatar size="sm" [initials]="initials(r.owner)" [label]="r.owner" [showTooltip]="false" />
+              {{ r.owner }}
+            </span>
+          </td>
+          <td class="num">{{ formatDate(r.lastUpdated) }}</td>
+        </tr>
+      } @empty {
+        <tr class="empty-row">
+          <td colspan="8">No pending records match “{{ query() }}”.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<app-table-footer label="Pending records pages" [total]="rows().length" [(page)]="page" [(pageSize)]="pageSize" />

@@ -1,0 +1,265 @@
+{
+  "_comment": "Sample tenant inventory from the prototype seed (lib/seed.ts): subsidiaries, vendors, assets, personal-data categories. Replace with your own.",
+  "subsidiaries": [
+    {
+      "id": "sub-group",
+      "name": "Solera Group",
+      "shortName": "Solera Group",
+      "parentId": null,
+      "jurisdiction": "Global (HQ)",
+      "kind": "holding"
+    },
+    {
+      "id": "sub-na",
+      "name": "Solera North America",
+      "shortName": "North America",
+      "parentId": "sub-group",
+      "jurisdiction": "United States",
+      "kind": "regional"
+    },
+    {
+      "id": "sub-us",
+      "name": "Solera US Operations, Inc.",
+      "shortName": "US Operations",
+      "parentId": "sub-na",
+      "jurisdiction": "United States",
+      "kind": "legal_entity"
+    },
+    {
+      "id": "sub-ca",
+      "name": "Solera Canada Ltd.",
+      "shortName": "Canada",
+      "parentId": "sub-na",
+      "jurisdiction": "Canada",
+      "kind": "legal_entity"
+    },
+    {
+      "id": "sub-emea",
+      "name": "Solera EMEA Holdings",
+      "shortName": "EMEA",
+      "parentId": "sub-group",
+      "jurisdiction": "Germany (regional HQ)",
+      "kind": "regional"
+    },
+    {
+      "id": "sub-de",
+      "name": "Solera Deutschland GmbH",
+      "shortName": "Germany",
+      "parentId": "sub-emea",
+      "jurisdiction": "Germany",
+      "kind": "legal_entity"
+    },
+    {
+      "id": "sub-uk",
+      "name": "Solera UK Ltd.",
+      "shortName": "United Kingdom",
+      "parentId": "sub-emea",
+      "jurisdiction": "United Kingdom",
+      "kind": "legal_entity"
+    },
+    {
+      "id": "sub-apac",
+      "name": "Solera APAC Pte. Ltd.",
+      "shortName": "APAC",
+      "parentId": "sub-group",
+      "jurisdiction": "Singapore",
+      "kind": "legal_entity"
+    }
+  ],
+  "vendors": [
+    {
+      "id": "ven-talentsprint",
+      "name": "TalentSprint AI",
+      "category": "AI candidate screening",
+      "location": "United States",
+      "dpaStatus": "Pending"
+    },
+    {
+      "id": "ven-greenhouse",
+      "name": "Greenhouse",
+      "category": "Applicant Tracking System",
+      "location": "United States",
+      "dpaStatus": "Signed"
+    },
+    {
+      "id": "ven-checkr",
+      "name": "Checkr",
+      "category": "Background checks",
+      "location": "United States",
+      "dpaStatus": "Signed"
+    },
+    {
+      "id": "ven-aws",
+      "name": "Amazon Web Services",
+      "category": "Cloud Infrastructure",
+      "location": "Global",
+      "dpaStatus": "Signed"
+    },
+    {
+      "id": "ven-zoom",
+      "name": "Zoom",
+      "category": "Video interviews",
+      "location": "United States",
+      "dpaStatus": "Pending"
+    },
+    {
+      "id": "ven-workday",
+      "name": "Workday",
+      "category": "HR / Payroll",
+      "location": "United States",
+      "dpaStatus": "Signed"
+    },
+    {
+      "id": "ven-salesforce",
+      "name": "Salesforce",
+      "category": "CRM",
+      "location": "United States",
+      "dpaStatus": "Signed"
+    },
+    {
+      "id": "ven-okta",
+      "name": "Okta",
+      "category": "Identity",
+      "location": "United States",
+      "dpaStatus": "Signed"
+    },
+    {
+      "id": "ven-zendesk",
+      "name": "Zendesk",
+      "category": "Customer Support",
+      "location": "United States",
+      "dpaStatus": "Signed"
+    }
+  ],
+  "assets": [
+    {
+      "id": "ast-ats",
+      "name": "Candidate ATS",
+      "type": "Application",
+      "hostingRegion": "US (Virginia)"
+    },
+    {
+      "id": "ast-video",
+      "name": "Recorded Interview Workspace",
+      "type": "Application",
+      "hostingRegion": "US (Oregon)"
+    },
+    {
+      "id": "ast-screening",
+      "name": "TalentSprint Screening Console",
+      "type": "Application",
+      "hostingRegion": "US (Virginia)"
+    },
+    {
+      "id": "ast-hris",
+      "name": "HRIS",
+      "type": "System",
+      "hostingRegion": "US (Virginia)"
+    },
+    {
+      "id": "ast-background",
+      "name": "Background Check Repository",
+      "type": "Data store",
+      "hostingRegion": "EU (Frankfurt)"
+    },
+    {
+      "id": "ast-idp",
+      "name": "Identity Provider",
+      "type": "System",
+      "hostingRegion": "Global"
+    },
+    {
+      "id": "ast-warehouse",
+      "name": "People Analytics Warehouse",
+      "type": "Data store",
+      "hostingRegion": "US (Virginia)"
+    }
+  ],
+  "personalDataCategories": [
+    {
+      "id": "pdc-name",
+      "name": "Name",
+      "sensitivity": "standard"
+    },
+    {
+      "id": "pdc-email",
+      "name": "Email address",
+      "sensitivity": "standard"
+    },
+    {
+      "id": "pdc-phone",
+      "name": "Phone number",
+      "sensitivity": "standard"
+    },
+    {
+      "id": "pdc-address",
+      "name": "Postal address",
+      "sensitivity": "standard"
+    },
+    {
+      "id": "pdc-ip",
+      "name": "IP address",
+      "sensitivity": "standard"
+    },
+    {
+      "id": "pdc-location",
+      "name": "Location data",
+      "sensitivity": "standard"
+    },
+    {
+      "id": "pdc-device",
+      "name": "Device identifiers",
+      "sensitivity": "standard"
+    },
+    {
+      "id": "pdc-payment",
+      "name": "Payment card data",
+      "sensitivity": "standard"
+    },
+    {
+      "id": "pdc-govid",
+      "name": "Government ID number",
+      "sensitivity": "standard"
+    },
+    {
+      "id": "pdc-employment",
+      "name": "Employment history",
+      "sensitivity": "standard"
+    },
+    {
+      "id": "pdc-education",
+      "name": "Education and qualifications",
+      "sensitivity": "standard"
+    },
+    {
+      "id": "pdc-interview",
+      "name": "Interview recordings",
+      "sensitivity": "standard"
+    },
+    {
+      "id": "pdc-inferred",
+      "name": "Inferred candidate scores",
+      "sensitivity": "standard"
+    },
+    {
+      "id": "pdc-financial",
+      "name": "Financial account data",
+      "sensitivity": "standard"
+    },
+    {
+      "id": "pdc-health",
+      "name": "Health data",
+      "sensitivity": "special"
+    },
+    {
+      "id": "pdc-biometric",
+      "name": "Biometric data",
+      "sensitivity": "special"
+    },
+    {
+      "id": "pdc-ethnicity",
+      "name": "Racial or ethnic origin",
+      "sensitivity": "special"
+    }
+  ]
+}

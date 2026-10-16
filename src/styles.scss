@@ -1,0 +1,116 @@
+// OneCore foundation: --oc-* tokens (light, dark and Edison themes), Antique Legacy
+// fonts and breakpoint mixins. Resolved through stylePreprocessorOptions.includePaths
+// in angular.json, because the package's exports map does not expose foundation/.
+@use 'foundation/styles' as oc;
+
+html {
+  @include oc.base;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+// Data tables. OneCore has no table component, so list pages use a native
+// <table class="data-table"> styled here with --oc-* tokens.
+.data-table {
+  width: 100%;
+  // Fixed layout keeps long names from stretching columns; the min-width makes
+  // narrow windows scroll sideways instead of squeezing the Name column to nothing.
+  min-width: 1040px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--oc-font-size-sm);
+
+  th,
+  td {
+    height: 44px;
+    padding: 0 var(--oc-spacing-3);
+    text-align: left;
+    border-bottom: var(--oc-container-border-width) solid var(--oc-border);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--oc-secondary);
+    font-weight: var(--oc-font-weight-emphasis);
+  }
+
+  tbody tr:hover {
+    background: var(--oc-secondary-light-hover);
+  }
+
+  tbody tr.selected {
+    background: var(--oc-secondary-light-active);
+  }
+
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .right {
+    text-align: right;
+  }
+
+  .muted {
+    color: var(--oc-muted-foreground);
+  }
+
+  .empty-row td {
+    height: auto;
+    padding: var(--oc-spacing-8) var(--oc-spacing-3);
+    text-align: center;
+    color: var(--oc-muted-foreground);
+    white-space: normal;
+  }
+}
+
+// Sortable column header button: label plus a sort-direction icon.
+.sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--oc-spacing-1);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--oc-ring);
+    outline-offset: 2px;
+  }
+}
+
+// A record name rendered as a link, truncating inside its cell.
+.cell-link {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--oc-foreground);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+// Avatar + name in a table cell.
+.cell-person {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--oc-spacing-2);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

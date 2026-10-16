@@ -1,0 +1,90 @@
+<div class="shell">
+  <header class="top-bar">
+    <div class="brand" [class.brand--collapsed]="collapsed()">
+      <button oc-icon-button variant="inverse" size="sm" label="App launcher">
+        <oc-icon name="grid" />
+      </button>
+      @if (!collapsed()) {
+        <img src="onetrust-logo-white.svg" alt="OneTrust" width="124" height="17" />
+      }
+    </div>
+
+    <div class="global">
+      <p class="tenant">Trust Intelligence Platform - SK</p>
+      <button oc-icon-button variant="tertiary" label="Search">
+        <oc-icon name="magnifying-glass" />
+      </button>
+      <button oc-button variant="secondary" size="sm">
+        <oc-icon slot="leading" name="ai-sparkles" />
+        Ask Copilot
+      </button>
+      <button oc-icon-button variant="tertiary" label="Notifications, 4 unread" [showIndicator]="true">
+        <oc-icon name="bell" />
+      </button>
+      <button oc-button variant="tertiary" size="sm" class="org-switch">
+        <oc-icon slot="leading" name="buildings" />
+        LKGBTenant3LIVE
+        <oc-icon slot="trailing" name="chevron-down" />
+      </button>
+      <button oc-icon-button variant="tertiary" label="Settings">
+        <oc-icon name="gear" />
+      </button>
+      <oc-avatar size="sm" [initials]="userInitials" [label]="'Account: ' + user" />
+      <button oc-icon-button variant="tertiary" label="Help">
+        <oc-icon name="question-circle" />
+      </button>
+    </div>
+  </header>
+
+  <div class="body">
+    @if (collapsed()) {
+      <nav class="side-nav side-nav--collapsed" [attr.aria-label]="moduleName">
+        <button oc-icon-button variant="inverse" size="sm" label="Expand navigation" (click)="collapsed.set(false)">
+          <oc-icon name="sidebar-right" />
+        </button>
+      </nav>
+    } @else {
+      <nav class="side-nav" [attr.aria-label]="moduleName">
+        <div class="module">
+          <button oc-icon-button variant="inverse" size="sm" label="Collapse navigation" [tooltip]="false" (click)="collapsed.set(true)">
+            <oc-icon name="sidebar-left" />
+          </button>
+          <span class="module-name" [title]="moduleName">{{ moduleName }}</span>
+        </div>
+
+        @for (item of nav; track item.label) {
+          @if (isGroup(item)) {
+            <div class="group">
+              <button
+                type="button"
+                class="group-toggle"
+                [attr.aria-expanded]="!closedGroups().has(item.label)"
+                (click)="toggleGroup(item)"
+              >
+                {{ item.label }}
+                <oc-icon name="caret-down" size="sm" [class.rotated]="closedGroups().has(item.label)" />
+              </button>
+              @if (!closedGroups().has(item.label)) {
+                <div class="group-items">
+                  @for (link of item.children; track link.href) {
+                    <a class="nav-link nav-link--nested" [routerLink]="link.href" routerLinkActive="active" ariaCurrentWhenActive="page">
+                      {{ link.label }}
+                    </a>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            <a class="nav-link" [routerLink]="item.href" routerLinkActive="active" ariaCurrentWhenActive="page">
+              {{ item.label }}
+            </a>
+          }
+        }
+      </nav>
+    }
+
+    <main class="main">
+      <router-outlet />
+    </main>
+  </div>
+</div>

@@ -1,0 +1,183 @@
+<app-page-header title="Processing activities">
+  <p class="description">Your record of processing activities (RoPA). Keep each record current by reviewing it on schedule.</p>
+
+  <ng-container ngProjectAs="[slot=actions]">
+    <!-- The entry point to Author with AI. -->
+    <button oc-button variant="primary" [ocMenuTrigger]="addMenu" placement="bottom-end">
+      Add processing activity
+      <oc-icon slot="trailing" name="chevron-down" />
+    </button>
+    <ng-template #addMenu>
+      <oc-menu>
+        <button oc-menu-item (click)="router.navigate(['/processing-activities/new'])">
+          <oc-icon name="ai-sparkles" />
+          Author with AI
+        </button>
+        <button oc-menu-item disabled>Create manually</button>
+      </oc-menu>
+    </ng-template>
+
+    <button oc-icon-button variant="tertiary" label="More actions" [ocMenuTrigger]="moreMenu" placement="bottom-end">
+      <oc-icon name="ellipsis" />
+    </button>
+    <ng-template #moreMenu>
+      <oc-menu>
+        <button oc-menu-item>Bulk create</button>
+        <button oc-menu-item>Bulk update</button>
+        <oc-menu-separator />
+        <button oc-menu-item>Process gallery</button>
+      </oc-menu>
+    </ng-template>
+  </ng-container>
+</app-page-header>
+
+@if (drafts().length > 0) {
+  <div class="banner">
+    <oc-alert
+      intent="info"
+      [dismissible]="false"
+      [title]="drafts().length === 1 ? '1 AI-drafted record is waiting for approval' : drafts().length + ' AI-drafted records are waiting for approval'"
+      description="Drafts from Author with AI wait in Pending inventory until a reviewer approves them."
+    />
+    <a oc-button variant="secondary" size="sm" routerLink="/pending-inventory">Review drafts</a>
+  </div>
+}
+
+<div class="toolbar">
+  <div class="toolbar-row">
+    <div class="view-picker">
+      <oc-select
+        size="sm"
+        aria-label="Saved view"
+        [displayWith]="viewLabel"
+        [value]="view()"
+        (valueChange)="setView($event)"
+      >
+        @for (v of views; track v.key) {
+          <oc-select-option [value]="v.key">{{ v.label }}</oc-select-option>
+        }
+      </oc-select>
+      @if (viewModified()) {
+        <span class="modified" title="View has unsaved changes">*</span>
+      }
+    </div>
+
+    <div class="tools">
+      <oc-input
+        class="search"
+        size="sm"
+        type="search"
+        placeholder="Search"
+        ariaLabel="Search processing activities"
+        clearable
+        [ngModel]="query()"
+        (ngModelChange)="setQuery($event)"
+      >
+        <oc-icon slot="leading" name="magnifying-glass" />
+      </oc-input>
+      <button oc-icon-button variant="tertiary" size="sm" label="Choose columns"><oc-icon name="columns-3" /></button>
+      <button oc-icon-button variant="tertiary" size="sm" label="Export"><oc-icon name="arrow-down-to-bracket" /></button>
+      <button oc-icon-button variant="tertiary" size="sm" label="Refresh"><oc-icon name="arrows-rotate" /></button>
+      <button oc-button variant="secondary" size="sm">Recycle bin</button>
+    </div>
+  </div>
+
+  <div>
+    <button oc-button variant="tertiary" size="sm">
+      <oc-icon slot="leading" name="plus" />
+      Add filter
+    </button>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table class="data-table">
+    <colgroup>
+      <col style="width: 48px" />
+      <col style="width: 60px" />
+      <col style="width: 96px" />
+      <col />
+      <col style="width: 240px" />
+      <col style="width: 220px" />
+      <col style="width: 140px" />
+    </colgroup>
+    <thead>
+      <tr>
+        <th scope="col">
+          <button
+            oc-checkbox
+            aria-label="Select all on this page"
+            [checked]="allChecked()"
+            [indeterminate]="someChecked()"
+            (checkedChange)="toggleAll()"
+          ></button>
+        </th>
+        <th scope="col"><span class="visually-hidden">Actions</span></th>
+        <th scope="col" [attr.aria-sort]="ariaSort('id')">
+          <button type="button" class="sort-button" (click)="onSort('id')">ID <oc-icon size="sm" [name]="sortIcon('id')" /></button>
+        </th>
+        <th scope="col" [attr.aria-sort]="ariaSort('name')">
+          <button type="button" class="sort-button" (click)="onSort('name')">Name <oc-icon size="sm" [name]="sortIcon('name')" /></button>
+        </th>
+        <th scope="col">Managing organization</th>
+        <th scope="col">Business process owner</th>
+        <th scope="col" [attr.aria-sort]="ariaSort('status')">
+          <button type="button" class="sort-button" (click)="onSort('status')">Status <oc-icon size="sm" [name]="sortIcon('status')" /></button>
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (r of visible(); track r.id) {
+        <tr [class.selected]="selected().has(r.id)">
+          <td>
+            <button oc-checkbox [attr.aria-label]="'Select ' + r.name" [checked]="selected().has(r.id)" (checkedChange)="toggleOne(r.id)"></button>
+          </td>
+          <td>
+            <button oc-icon-button variant="tertiary" size="sm" [label]="'Actions for ' + r.name" [tooltip]="false" [ocMenuTrigger]="rowMenu">
+              <oc-icon name="ellipsis" />
+            </button>
+            <ng-template #rowMenu>
+              <oc-menu>
+                <button oc-menu-item>Start re-certification</button>
+                <button oc-menu-item>Duplicate</button>
+                <oc-menu-separator />
+                <button oc-menu-item variant="destructive">Archive</button>
+              </oc-menu>
+            </ng-template>
+          </td>
+          <td class="num">{{ r.id }}</td>
+          <td>
+            <span class="name-cell">
+              <a class="cell-link" href="#" [title]="r.name" (click)="$event.preventDefault()">{{ r.name }}</a>
+              <button oc-icon-button variant="tertiary" size="xs" [label]="'Preview ' + r.name" [tooltip]="false">
+                <oc-icon name="file-magnifying-glass" />
+              </button>
+            </span>
+          </td>
+          <td [title]="subsidiaryName(r.subsidiaryId)">{{ subsidiaryName(r.subsidiaryId) }}</td>
+          <td>
+            <span class="cell-person">
+              <oc-avatar size="sm" [initials]="initials(r.owner)" [label]="r.owner" [showTooltip]="false" />
+              {{ r.owner }}
+            </span>
+          </td>
+          <td>
+            <oc-badge size="sm" [color]="recordStatus[r.status].color">{{ recordStatus[r.status].label }}</oc-badge>
+          </td>
+        </tr>
+      } @empty {
+        <tr class="empty-row">
+          <td colspan="7">No processing activities match this view.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<app-table-footer
+  label="Processing activities pages"
+  [total]="rows().length"
+  [(page)]="page"
+  [(pageSize)]="pageSize"
+  [pageSizes]="[10, 20, 50, 100]"
+/>
