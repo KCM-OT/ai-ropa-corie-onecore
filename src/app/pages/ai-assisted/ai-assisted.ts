@@ -9,7 +9,8 @@ import {
   viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
+import { OcAlert } from '@onetrust/onecore/alert';
 import {
   OcAssistantActions,
   OcAssistantAttach,
@@ -42,6 +43,7 @@ import { OcStatus } from '@onetrust/onecore/status';
 import { OcTag } from '@onetrust/onecore/tag';
 import { OcTextarea } from '@onetrust/onecore/textarea';
 import { DraftsStore } from '../../data/drafts.store';
+import { buildHandoff, handoffFileName, handoffUrl } from '../../data/handoff';
 import { initials, SIGNED_IN_USER, SUBSIDIARIES, subsidiaryName } from '../../data/org';
 import { PROCESSING_ACTIVITIES } from '../../data/processing-activities';
 import { runRopaChecks, type CheckRecord, type CheckSeverity, type RopaCheckReport } from '../../data/ropa-check';
@@ -190,6 +192,7 @@ function plural(n: number, one: string, many = `${one}s`): string {
   imports: [
     FormsModule,
     RouterLink,
+    OcAlert,
     OcAssistantActions,
     OcAssistantAttach,
     OcAssistantAttachmentTray,
@@ -227,7 +230,6 @@ function plural(n: number, one: string, many = `${one}s`): string {
   styleUrl: './ai-assisted.scss',
 })
 export class AiAssisted {
-  readonly #router = inject(Router);
   readonly #drafts = inject(DraftsStore);
   readonly #injector = inject(Injector);
 
@@ -780,25 +782,74 @@ export class AiAssisted {
     this.relDecisions.update((d) => ({ ...d, [`${r.type}:${r.name}`]: 'rejected' }));
   }
 
+  /** Set once the draft has been sent to Data Mapping. */
+  protected readonly sent = signal<{ name: string; url: string; fileUrl: string; fileName: string; opened: boolean } | null>(null);
+
+  /**
+   * Send to Pending inventory: package the record as a RoPA handoff (JSON),
+   * open the Data Mapping prototype's Processing activities page in a new tab
+   * with the package in the URL fragment, and keep a copy in this prototype's
+   * Pending inventory. The page stays here, with a link to open Data Mapping
+   * again (in case a popup blocker stopped it) and the JSON to download.
+   */
   protected submit(): void {
     if (!this.canSubmit()) return;
     const values = this.values();
     const meta = this.fieldMeta();
+    const relationships = this.relationships().filter((r) => r.status !== 'rejected');
+
+    const handoff = buildHandoff({
+      record: this.record(),
+      report: this.report(),
+      fieldMeta: meta,
+      relationships,
+      notes: this.notes(),
+      submittedBy: SIGNED_IN_USER,
+    });
+    const url = handoffUrl(handoff);
+    // Open first, synchronously in the click, so popup blockers allow it.
+    const tab = window.open(url, '_blank');
+    if (tab) tab.opener = null;
+
     const fields: DraftField[] = this.report()
       .fields.filter((f) => f.filled && values[f.key] !== undefined)
       .map((f) => ({ key: f.key, label: f.label, value: display(values[f.key]), meta: meta[f.key] }));
-    const saved = this.#drafts.add({
+    this.#drafts.add({
       name: this.name().trim(),
       role: this.role(),
       subsidiaryId: this.subsidiaryId() ?? '',
       description: this.description(),
       fields,
-      relationships: this.relationships().filter((r) => r.status !== 'rejected'),
+      relationships,
       completeness: this.report().completeness,
       sourceFileName: this.sourceFile(),
       submittedBy: SIGNED_IN_USER,
     });
-    this.#router.navigate(['/pending-inventory'], { queryParams: { draft: saved.id } });
+
+    // Sent: stop asking follow-up questions; whatever is still open goes to the reviewer.
+    this.pending.set(null);
+    this.phase.set('ready');
+
+    const previous = this.sent();
+    if (previous) URL.revokeObjectURL(previous.fileUrl);
+    const file = new Blob([JSON.stringify(handoff, null, 2)], { type: 'application/json' });
+    this.sent.set({
+      name: handoff.record.name ?? 'The record',
+      url,
+      fileUrl: URL.createObjectURL(file),
+      fileName: handoffFileName(handoff),
+      opened: Boolean(tab),
+    });
+    this.#push({
+      from: 'assistant',
+      text: '',
+      source: tab
+        ? `I've sent ${handoff.record.name} to Data Mapping. It opened in a new tab, where it's been added to ` +
+          'Processing activities as a pending record for a reviewer to approve. Anything still open goes with it ' +
+          'for the reviewer.'
+        : `I've packaged ${handoff.record.name} for Data Mapping, but your browser blocked the new tab. ` +
+          'Use Open Data Mapping in the draft panel to add it to Processing activities.',
+    });
   }
 
   // ---- State helpers -------------------------------------------------------------

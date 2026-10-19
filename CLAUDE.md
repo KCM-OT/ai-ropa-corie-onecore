@@ -35,6 +35,13 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
   Replies are written in the component and streamed with `[ocStream]` through one `send()`; there's
   no model. OneCore only shows Edit on a user turn that is the newest message, so Stop drops the
   partial reply to make the message editable.
+- **Send to Pending inventory** hands the RoPA to the Data Mapping prototype (KCM-OT/ai-ropa-datamapping,
+  https://ai-ropa-datamapping-sigma.vercel.app). `data/handoff.ts` packages it as JSON
+  (`format: "onetrust.ropa-handoff"`, version 1: the record in the skill's shape with full evidence,
+  plus the check results) and opens that app's `/processing-activities` in a new tab with the package
+  in the URL fragment (`#ropa-import=…`, base64url). That page validates it and adds it as a pending
+  record. Locally it targets http://localhost:3000. The receiver is `lib/authoring/ropa-handoff.ts`
+  in that repo; change both together. The JSON can also be downloaded.
 
 Layout: `shell/` holds the app shell (top bar + side nav), `PageHeader`, and `TableFooter`
 (wraps `oc-pagination` with a row count and page-size picker). Mock data lives in `data/`.

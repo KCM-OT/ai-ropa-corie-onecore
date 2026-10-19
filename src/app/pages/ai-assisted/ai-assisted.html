@@ -221,15 +221,19 @@
     <div class="draft-scroll">
       <div class="draft-head">
         <h2 id="draft-title">Draft record</h2>
-        @switch (phase()) {
-          @case ('describe') {
-            <oc-badge size="sm">Not started</oc-badge>
-          }
-          @case ('ready') {
-            <oc-badge size="sm" color="success">Ready to send</oc-badge>
-          }
-          @default {
-            <oc-badge size="sm" color="purple">Drafting</oc-badge>
+        @if (sent()) {
+          <oc-badge size="sm" color="success">Sent</oc-badge>
+        } @else {
+          @switch (phase()) {
+            @case ('describe') {
+              <oc-badge size="sm">Not started</oc-badge>
+            }
+            @case ('ready') {
+              <oc-badge size="sm" color="success">Ready to send</oc-badge>
+            }
+            @default {
+              <oc-badge size="sm" color="purple">Drafting</oc-badge>
+            }
           }
         }
       </div>
@@ -310,7 +314,13 @@
                 }
               </div>
               @if (f.filled) {
-                <p class="field-value" [class.clamp]="f.key === 'description'" [title]="f.key === 'description' ? f.value : null">{{ f.value }}</p>
+                <p
+                  class="field-value"
+                  [class.clamp]="f.key === 'description'"
+                  [title]="f.key === 'description' ? f.value : null"
+                >
+                  {{ f.value }}
+                </p>
                 @if (f.meta && f.meta.provenance === 'ai') {
                   <blockquote>“{{ f.meta.evidence }}”</blockquote>
                 }
@@ -418,13 +428,51 @@
     </div>
 
     <div class="draft-foot">
-      <button oc-button variant="primary" [disabled]="!canSubmit()" (click)="submit()">
-        Send to Pending inventory
-      </button>
-      <p>
-        Checked with the ropa-authoring skill. A reviewer approves the draft before it becomes a
-        processing activity.
-      </p>
+      @if (sent(); as done) {
+        <oc-alert
+          class="sent"
+          intent="success"
+          size="sm"
+          [dismissible]="false"
+          [title]="done.name + ' was sent to Data Mapping'"
+          [description]="
+            done.opened
+              ? 'It opened in a new tab and was added to Processing activities as a pending record.'
+              : 'Your browser blocked the new tab. Open Data Mapping to add it to Processing activities.'
+          "
+        />
+        <div class="sent-actions">
+          <a
+            oc-button
+            variant="secondary"
+            size="sm"
+            [href]="done.url"
+            target="_blank"
+            rel="noopener"
+          >
+            <oc-icon slot="leading" name="arrow-up-right-from-square" />
+            Open Data Mapping
+          </a>
+          <a
+            oc-button
+            variant="tertiary"
+            size="sm"
+            [href]="done.fileUrl"
+            [attr.download]="done.fileName"
+          >
+            <oc-icon slot="leading" name="arrow-down-to-bracket" />
+            Download JSON
+          </a>
+        </div>
+      } @else {
+        <button oc-button variant="primary" [disabled]="!canSubmit()" (click)="submit()">
+          Send to Pending inventory
+        </button>
+        <p>
+          Checked with the ropa-authoring skill. Sending opens Data Mapping, where a reviewer
+          approves the draft before it becomes a processing activity.
+        </p>
+      }
     </div>
   </aside>
 </div>

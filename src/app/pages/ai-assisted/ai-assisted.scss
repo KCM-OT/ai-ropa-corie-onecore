@@ -369,3 +369,14 @@ blockquote {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+// After sending: confirmation and follow-up links in the panel footer.
+.sent {
+  flex: 1;
+}
+
+.sent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--oc-spacing-2);
+}
