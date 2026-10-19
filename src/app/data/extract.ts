@@ -1,4 +1,4 @@
-import inventory from './inventory.example.json';
+import inventory from '../../../.claude/skills/ropa-authoring/assets/inventory.example.json';
 import type { DraftField, FieldMeta, Relationship } from './types';
 
 // Rule-based stand-in for the authoring model. It follows the skill's
@@ -59,7 +59,9 @@ const SUBJECTS: [RegExp, string][] = [
 ]
 
 const SECURITY = /encrypt|\bSSO\b|single sign-on|\bMFA\b|multi-factor|access control|pseudonymi|role-based access/i
-const TRANSFER = /outside (?:the )?(?:EU|EEA|UK)|\bSCCs?\b|standard contractual clauses|United States|\bUS\b|\bU\.S\.|India|transferred to/i
+// "US" is matched case-sensitively, so the word "us" isn't read as a country.
+const TRANSFER = /outside (?:the )?(?:EU|EEA|UK)|\bSCCs?\b|standard contractual clauses|United States|\bU\.S\.|India|transferred to/i
+const TRANSFER_US = /\bUS\b/
 const RETENTION = /retain|retention|\bkept\b|\bkeep\b|\bdelete|\bdeleted|\bstored for/i
 const PURPOSE = /\bin order to\b|\bso that\b|\bpurpose\b|\bused to\b|\bto help\b|\bwe use\b/i
 
@@ -113,7 +115,7 @@ export function extractDraft(description: string): { fields: DraftField[]; relat
   const transferLabel = labelled(src, ['international transfers', 'processing location'])
   if (transferLabel) add('internationalTransfers', 'International transfers', transferLabel, meta(0.86, transferLabel, 'Stated under a transfers / location label.'))
   else {
-    const s = sentenceWith(src, TRANSFER)
+    const s = sentenceWith(src, TRANSFER) ?? sentenceWith(src, TRANSFER_US)
     if (s) add('internationalTransfers', 'International transfers', s, meta(0.71, s, 'A sentence names a location or transfer mechanism outside the EU.'))
   }
 

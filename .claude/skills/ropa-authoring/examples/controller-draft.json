@@ -1,0 +1,62 @@
+{
+  "role": "controller",
+  "subsidiaryId": "sub-group",
+  "name": "AI-Assisted Candidate Screening",
+  "description": "Job applicants' CVs are screened and scored by TalentSprint AI before a recruiter reviews the shortlist.",
+  "status": "draft",
+  "purpose": "Shortlist job applicants using automated CV scoring",
+  "legalBasis": "Legitimate interests",
+  "businessProcessOwner": "Jane Smith",
+  "dataSubjectCategories": [
+    "Job applicants"
+  ],
+  "retentionPeriod": "Until no longer needed",
+  "internationalTransfers": "Data processed in the United States",
+  "securityMeasures": "Encryption at rest and in transit, SSO",
+  "fieldMeta": {
+    "purpose": {
+      "provenance": "ai",
+      "confidence": 0.92,
+      "evidence": "Purpose: shortlist applicants",
+      "rationale": "Explicitly stated under a Purpose heading."
+    },
+    "legalBasis": {
+      "provenance": "ai",
+      "confidence": 0.55,
+      "evidence": "in our interest to hire efficiently",
+      "rationale": "Weak inference."
+    },
+    "retentionPeriod": {
+      "provenance": "ai",
+      "confidence": 0.7,
+      "evidence": "kept until no longer needed",
+      "rationale": "Inferred from a retention sentence."
+    }
+  },
+  "relationships": [
+    {
+      "type": "vendor",
+      "name": "TalentSprint AI",
+      "confidence": 0.91,
+      "evidence": "screened by TalentSprint AI",
+      "rationale": "Named directly.",
+      "status": "suggested"
+    },
+    {
+      "type": "personalData",
+      "name": "Health data",
+      "confidence": 0.8,
+      "evidence": "disability accommodation notes",
+      "rationale": "Special-category data (Art. 9).",
+      "status": "suggested"
+    },
+    {
+      "type": "asset",
+      "name": "Recruiting Portal",
+      "confidence": 0.7,
+      "evidence": "uploaded via the Recruiting Portal",
+      "rationale": "Internal system.",
+      "status": "suggested"
+    }
+  ]
+}

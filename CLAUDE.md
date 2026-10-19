@@ -29,11 +29,12 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
 - `/pending-inventory`: pending records plus AI drafts (from `DraftsStore`, kept in localStorage).
 - `/ai-assisted-ropa`: AI Assisted RoPA Creation (prototype-only, top of the sidebar and in the
   Add processing activity menu). A OneCore `oc-assistant-thread` conversation beside a live draft
-  panel: describe → `oc-assistant-steps` chain for name, entity and role → one follow-up question
-  per missing field → send to Pending inventory. Replies are written in the component and streamed
-  with `[ocStream]` through one `send()`; there's no model. OneCore only shows Edit on a user turn
-  that is the newest message, so Stop drops the partial reply to make the message editable.
-- Every other nav item renders `pages/placeholder.ts`.
+  panel that follows the ropa-authoring skill's workflow (SKILL.md steps 1–6): describe →
+  `oc-assistant-steps` chain for name, owning entity and role (pre-selected from the description's
+  role cues) → follow-up questions planned from the checker's report → send to Pending inventory.
+  Replies are written in the component and streamed with `[ocStream]` through one `send()`; there's
+  no model. OneCore only shows Edit on a user turn that is the newest message, so Stop drops the
+  partial reply to make the message editable.
 
 Layout: `shell/` holds the app shell (top bar + side nav), `PageHeader`, and `TableFooter`
 (wraps `oc-pagination` with a row count and page-size picker). Mock data lives in `data/`.
@@ -60,7 +61,18 @@ Shared table styles (`.data-table`) are in `src/styles.scss`. Scroll containers 
 - Hosted docs (Storybook, needs GitLab sign-in):
   https://onecore-5e147a.gitlab.io/release-alpha/?path=/docs/guides-developer-overview--docs
 
-## RoPA content
+## RoPA content: the ropa-authoring skill
 
-GDPR Article 30 field logic lives in the `ropa-authoring` skill, also used by the earlier
-React prototype at `../ai-ropa-datamapping`.
+The skill is vendored at `.claude/skills/ropa-authoring` (see its `UPSTREAM.md`). The app reads
+its inventory and posture config straight from `assets/`.
+
+- `data/ropa-check.ts` is the skill's checks (`scripts/ropa_check.py`) in TypeScript, copied from
+  the upstream Solera app's port. The Python script is the source of truth. After changing either,
+  or the extractor, run `npm run skill:parity`: it runs both on the skill's examples, edge cases and
+  drafts the app's extractor builds for every role, and fails on any difference.
+- `data/skill-draft.ts` builds a record in the skill's JSON shape for the chosen role, extending
+  the rule-based `data/extract.ts` with the skill's cues (managing organization, role, processor
+  and joint-controller fields, standard personal-data categories, tools not in the inventory).
+- `data/skill-questions.ts` plans the assistant's follow-ups from the check report in SKILL.md
+  step 5's order, then asks to confirm "Needs review" values.
+- The Author with AI page (`/processing-activities/new`) still uses only `data/extract.ts`.

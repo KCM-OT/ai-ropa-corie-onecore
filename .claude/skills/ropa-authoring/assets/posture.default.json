@@ -1,0 +1,80 @@
+{
+  "_comment": "DEFAULT_POSTURE from the prototype (lib/seed.ts).",
+  "defaultCadenceDays": 365,
+  "requireCertification": true,
+  "cadenceRules": [
+    {
+      "id": "cad-high",
+      "label": "High-risk activities",
+      "enabled": true,
+      "logic": "any",
+      "conditions": [
+        "specialCategory",
+        "automatedDecisions",
+        "systematicMonitoring"
+      ],
+      "cadenceDays": 180
+    },
+    {
+      "id": "cad-elevated",
+      "label": "Elevated (transfers / large-scale)",
+      "enabled": true,
+      "logic": "any",
+      "conditions": [
+        "internationalTransfer",
+        "largeScale",
+        "vulnerableSubjects"
+      ],
+      "cadenceDays": 270
+    }
+  ],
+  "assessmentRules": [
+    {
+      "type": "PIA",
+      "enabled": true,
+      "logic": "any",
+      "conditions": [
+        "specialCategory",
+        "largeScale",
+        "systematicMonitoring",
+        "automatedDecisions",
+        "vulnerableSubjects"
+      ],
+      "note": "Required for high-risk processing under GDPR Art. 35."
+    },
+    {
+      "type": "LIA",
+      "enabled": true,
+      "logic": "any",
+      "conditions": [
+        "legitimateInterests"
+      ]
+    },
+    {
+      "type": "TIA",
+      "enabled": true,
+      "logic": "any",
+      "conditions": [
+        "internationalTransfer"
+      ]
+    },
+    {
+      "type": "PbD",
+      "enabled": true,
+      "logic": "any",
+      "conditions": [
+        "newActivity",
+        "specialCategory",
+        "automatedDecisions"
+      ]
+    },
+    {
+      "type": "AIRisk",
+      "enabled": true,
+      "logic": "any",
+      "conditions": [
+        "automatedDecisions"
+      ]
+    }
+  ]
+}

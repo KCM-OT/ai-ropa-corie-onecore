@@ -1,0 +1,57 @@
+{
+  "role": "processor",
+  "subsidiaryId": "sub-uk",
+  "roleDetail": "Processor on behalf of payroll clients (multiple controllers)",
+  "name": "Managed payroll processing for clients",
+  "description": "Monthly payroll run for client companies on their instructions.",
+  "status": "draft",
+  "processorDetails": "Acme Payroll Services Ltd, 1 High St, London; privacy@acme.example; DPO: dpo@acme.example",
+  "controllers": [
+    {
+      "name": "Northwind GmbH",
+      "contact": "legal@northwind.example",
+      "dpo": "dpo@northwind.example",
+      "processingCategories": [
+        "Payroll calculation",
+        "Payslip distribution"
+      ]
+    }
+  ],
+  "processingCategories": [
+    "Payroll calculation",
+    "Payslip distribution",
+    "Year-end tax filings"
+  ],
+  "internationalTransfers": "Support access from India under SCCs (Module 3)",
+  "securityMeasures": "Encryption at rest and in transit, SSO, MFA, audit logging",
+  "dataSubjectCategories": [
+    "Client employees"
+  ],
+  "dpaReference": "DPA v2.1, Schedule 3 of the MSA",
+  "fieldMeta": {
+    "processorDetails": {
+      "provenance": "ai",
+      "confidence": 0.9,
+      "evidence": "verbatim quote",
+      "rationale": "\u2026"
+    }
+  },
+  "relationships": [
+    {
+      "type": "vendor",
+      "name": "Amazon Web Services",
+      "confidence": 0.9,
+      "evidence": "\u2026",
+      "rationale": "Hosting sub-processor.",
+      "status": "suggested"
+    },
+    {
+      "type": "personalData",
+      "name": "Financial account data",
+      "confidence": 0.87,
+      "evidence": "\u2026",
+      "rationale": "\u2026",
+      "status": "suggested"
+    }
+  ]
+}

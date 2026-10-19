@@ -1,0 +1,62 @@
+{
+  "role": "joint_controller",
+  "subsidiaryId": "sub-de",
+  "roleDetail": "Joint controller with Solera Group under Art. 26",
+  "name": "Shared EU Workforce HRIS",
+  "description": "A shared HR information system covering employees across Solera Deutschland GmbH and other EU entities, run jointly with Solera Group.",
+  "status": "draft",
+  "purpose": "Administer a shared HR system across EU subsidiaries",
+  "legalBasis": "Legal obligation",
+  "managingOrganization": "EMEA People Operations",
+  "businessProcessOwner": "Lena Fischer",
+  "controllerDetails": "Solera Deutschland GmbH, privacy@solera-de.example; DPO: dpo@solera-de.example",
+  "jointControllers": [
+    {
+      "name": "Solera Group",
+      "contact": "privacy@solera.example"
+    }
+  ],
+  "jointArrangement": "Joint-controller arrangement under Art. 26, v1.2 (2026)",
+  "dataSubjectCategories": [
+    "Employees"
+  ],
+  "retentionPeriod": "Duration of employment + statutory retention per local law",
+  "recipients": "EMEA People Operations, Solera Group HR Systems",
+  "internationalTransfers": "None (data kept in EU)",
+  "securityMeasures": "Encryption, RBAC",
+  "jurisdiction": "Germany",
+  "fieldMeta": {
+    "legalBasis": {
+      "provenance": "ai",
+      "confidence": 0.88,
+      "evidence": "required under employment law",
+      "rationale": "Stated explicitly."
+    }
+  },
+  "relationships": [
+    {
+      "type": "vendor",
+      "name": "Workday",
+      "confidence": 0.91,
+      "evidence": "hosted in Workday",
+      "rationale": "Named directly.",
+      "status": "suggested"
+    },
+    {
+      "type": "personalData",
+      "name": "Government ID number",
+      "confidence": 0.87,
+      "evidence": "tax ID",
+      "rationale": "Referenced.",
+      "status": "suggested"
+    },
+    {
+      "type": "personalData",
+      "name": "Employment history",
+      "confidence": 0.87,
+      "evidence": "employment records",
+      "rationale": "Referenced.",
+      "status": "suggested"
+    }
+  ]
+}

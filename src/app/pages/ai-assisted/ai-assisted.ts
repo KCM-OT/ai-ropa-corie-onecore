@@ -42,40 +42,57 @@ import { OcStatus } from '@onetrust/onecore/status';
 import { OcTag } from '@onetrust/onecore/tag';
 import { OcTextarea } from '@onetrust/onecore/textarea';
 import { DraftsStore } from '../../data/drafts.store';
-import {
-  completeness,
-  extractDraft,
-  FIELD_LABELS,
-  FOLLOW_UPS,
-  SAMPLE_DESCRIPTION,
-} from '../../data/extract';
 import { initials, SIGNED_IN_USER, SUBSIDIARIES, subsidiaryName } from '../../data/org';
+import { PROCESSING_ACTIVITIES } from '../../data/processing-activities';
+import { runRopaChecks, type CheckRecord, type CheckSeverity, type RopaCheckReport } from '../../data/ropa-check';
 import {
-  confidenceBand,
-  ROLE_HELP,
-  ROLE_LABELS,
-  type DraftField,
-  type ProcessingRole,
-  type Relationship,
-} from '../../data/types';
+  extractForSkill,
+  INVENTORY,
+  JOINT_SAMPLE,
+  parseParties,
+  POSTURE,
+  PROCESSOR_SAMPLE,
+  splitList,
+  toCheckRecord,
+  type Extraction,
+  type Party,
+} from '../../data/skill-draft';
+import {
+  CONFIRM_ALL_CHIP,
+  CONFIRM_CHIP,
+  normaliseLegalBasis,
+  planQuestions,
+  REMOVE_CHIP,
+  SKIP_CHIP,
+  type Question,
+} from '../../data/skill-questions';
+import { SAMPLE_DESCRIPTION } from '../../data/extract';
+import { ROLE_HELP, ROLE_LABELS, type DraftField, type FieldMeta, type ProcessingRole, type Relationship } from '../../data/types';
 import { PageHeader } from '../../shell/page-header';
 
-// AI Assisted RoPA Creation: the record is drafted through a conversation with
-// the OneCore AI assistant, while a draft panel beside it fills in live.
+// AI Assisted RoPA Creation: a conversation with the OneCore AI assistant,
+// with a live draft beside it, that follows the ropa-authoring skill's
+// workflow (.claude/skills/ropa-authoring/SKILL.md):
 //
-// The conversation runs in phases:
-//   describe  → the user describes the activity (or attaches a document) and
-//               the rule-based extractor drafts what it can, quoting evidence
-//   details   → an oc-assistant-steps chain asks the three things a
-//               description can't settle: name, owning entity and role
-//   followups → the assistant asks about each field still missing, one at a time
-//   ready     → nothing left to ask; the user sends the draft for approval
+//   1. Gather the description   → phase 'describe' (text or an attached .txt / .md)
+//   2. Role and owning entity    → phase 'details': an oc-assistant-steps chain for the
+//                                  name, the owning entity and the role, pre-selecting
+//                                  the role the description's cues point to
+//   3. Extract a draft           → skill-draft.ts: values, confidence, verbatim evidence,
+//                                  relationships, in the skill's JSON shape for the role
+//   4. Run the checks            → ropa-check.ts, a parity-tested port of ropa_check.py,
+//                                  re-run on every change
+//   5. Close the gaps            → phase 'closing': one question at a time, planned from
+//                                  the check report in the skill's priority order
+//                                  (skill-questions.ts); answers re-extract and re-check
+//   6. Propose the record        → phase 'ready': completeness, posture and remaining gaps,
+//                                  then the user sends it to Pending inventory
 //
-// Every reply goes through one send() (OneCore rule AST-01). It applies the
-// turn's effects to the draft, then streams the reply text. No model is
-// connected: replies are written here and streamed word by word.
+// Every reply goes through one send() (OneCore rule AST-01). No model is
+// connected: the reply text is written here and streamed word by word.
 
-type Phase = 'describe' | 'details' | 'followups' | 'ready';
+type Phase = 'describe' | 'details' | 'closing' | 'ready';
+type Value = string | string[] | Party[];
 
 interface Turn {
   id: number;
@@ -87,18 +104,24 @@ interface Turn {
   meta?: string;
 }
 
+/** Everything a turn can change, so Stop and re-edit can roll it back. */
 interface Snapshot {
   phase: Phase;
   description: string;
   sourceFile: string | undefined;
-  fields: DraftField[];
-  relationships: Relationship[];
-  answers: Record<string, string>;
+  extraNarrative: string[];
+  extraRelationships: Relationship[];
+  userValues: Record<string, Value>;
+  confirmed: string[];
+  notes: Record<string, string>;
+  relDecisions: Record<string, 'accepted' | 'rejected'>;
+  handled: string[];
   skipped: string[];
-  pending: string | null;
+  pending: Question | null;
   name: string;
   subsidiaryId: string | null;
   role: ProcessingRole;
+  roleCue: Extraction['roleCue'];
 }
 
 interface Reply {
@@ -113,30 +136,32 @@ interface Suggestion {
   fill: boolean;
 }
 
-const SAMPLE_CHIP = 'Use a sample description';
-const SKIP_CHIP = 'Skip this question';
+const SAMPLE_CHIPS: Record<string, { text: string; name: string }> = {
+  'Sample: candidate screening (controller)': { text: SAMPLE_DESCRIPTION, name: 'Candidate screening' },
+  'Sample: client payroll (processor)': { text: PROCESSOR_SAMPLE, name: 'Client payroll' },
+  'Sample: group HR system (joint controller)': { text: JOINT_SAMPLE, name: 'Group HR information system' },
+};
 const STARTERS: Suggestion[] = [
-  { text: SAMPLE_CHIP, fill: false },
+  ...Object.keys(SAMPLE_CHIPS).map((text) => ({ text, fill: false })),
   {
     text: 'Our [team] collects [data] from [people] to [purpose], using [tools], and keeps it for [time].',
-    fill: true,
-  },
-  {
-    text: 'We process [data] for [client] on their instructions, using [sub-processors], stored in [location].',
     fill: true,
   },
 ];
 
 const THINKING_MS = 900;
-const WORD_MS = 22;
+const WORD_MS = 18;
 const MIN_DESCRIPTION = 60;
-const FIELD_KEYS = Object.keys(FOLLOW_UPS);
-const BAND_INTENT = { high: 'success', medium: 'warning', low: 'error' } as const;
+const SEVERITY_LABEL: Record<CheckSeverity, string> = { critical: 'Critical', warning: 'Warning', info: 'Info' };
+const SEVERITY_COLOR = { critical: 'destructive', warning: 'warning', info: 'info' } as const;
+const BAND_INTENT = { 'High confidence': 'success', 'Needs review': 'warning', 'Low confidence': 'error' } as const;
 const RELATIONSHIP_LABEL: Record<Relationship['type'], string> = {
   vendor: 'Vendor',
   asset: 'Asset',
   personalData: 'Personal data',
 };
+/** Existing records, for the checker's duplicate detection. */
+const EXISTING: CheckRecord[] = PROCESSING_ACTIVITIES.map((a) => ({ id: String(a.id), name: a.name, role: a.role }));
 
 /** Resolves after `ms`, or straight away once `signal` aborts. */
 function pause(ms: number, signal: AbortSignal): Promise<void> {
@@ -145,6 +170,19 @@ function pause(ms: number, signal: AbortSignal): Promise<void> {
     const timer = setTimeout(resolve, ms);
     signal.addEventListener('abort', () => (clearTimeout(timer), resolve()), { once: true });
   });
+}
+
+function display(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value
+      .map((v) => (typeof v === 'string' ? v : `${(v as Party).name}${(v as Party).contact ? ` (${(v as Party).contact})` : ''}`))
+      .join('; ');
+  }
+  return typeof value === 'string' ? value : '';
+}
+
+function plural(n: number, one: string, many = `${one}s`): string {
+  return `${n} ${n === 1 ? one : many}`;
 }
 
 @Component({
@@ -204,8 +242,12 @@ export class AiAssisted {
   protected readonly roleLabels = ROLE_LABELS;
   protected readonly roleHelp = ROLE_HELP;
   protected readonly relationshipLabel = RELATIONSHIP_LABEL;
+  protected readonly severityLabel = SEVERITY_LABEL;
+  protected readonly severityColor = SEVERITY_COLOR;
+  protected readonly bandIntent = BAND_INTENT;
+  protected readonly display = display;
 
-  // Conversation
+  // ---- Conversation ----
   protected readonly turns = signal<Turn[]>([]);
   protected readonly streamStates = signal<Record<number, ChoreoState>>({});
   protected readonly busy = signal(false);
@@ -215,68 +257,136 @@ export class AiAssisted {
   #nextId = 1;
   #abort: AbortController | null = null;
   readonly #after = new Map<number, () => void>();
-  /** Draft state before each user turn, so Stop and re-edit can roll back. */
   readonly #snapshots = new Map<number, Snapshot>();
 
-  // Draft
+  // ---- Draft state ----
   protected readonly phase = signal<Phase>('describe');
   protected readonly description = signal('');
   protected readonly sourceFile = signal<string | undefined>(undefined);
-  protected readonly fields = signal<DraftField[]>([]);
-  protected readonly relationships = signal<Relationship[]>([]);
-  protected readonly answers = signal<Record<string, string>>({});
+  /** Answers that describe the activity further; re-extracted with the description (SKILL.md step 5). */
+  protected readonly extraNarrative = signal<string[]>([]);
+  /** Systems or data categories the user named that extraction couldn't pick up. */
+  protected readonly extraRelationships = signal<Relationship[]>([]);
+  /** Values the user gave directly; they override extraction. */
+  protected readonly userValues = signal<Record<string, Value>>({});
+  /** Extracted values the user confirmed. */
+  protected readonly confirmed = signal<string[]>([]);
+  /** Answers recorded beside checks that can't clear (Art. 9 condition, Art. 22, Art. 28 authorisation). */
+  protected readonly notes = signal<Record<string, string>>({});
+  protected readonly relDecisions = signal<Record<string, 'accepted' | 'rejected'>>({});
+  protected readonly handled = signal<string[]>([]);
   protected readonly skipped = signal<string[]>([]);
-  protected readonly pending = signal<string | null>(null);
+  protected readonly pending = signal<Question | null>(null);
   protected readonly name = signal('');
   protected readonly subsidiaryId = signal<string | null>(null);
   protected readonly role = signal<ProcessingRole>('controller');
+  protected readonly roleCue = signal<Extraction['roleCue']>(undefined);
 
   protected readonly started = computed(() => this.description().length > 0);
 
-  protected readonly finalFields = computed<DraftField[]>(() => {
-    const answers = this.answers();
-    return [
-      ...this.fields(),
-      ...Object.entries(answers).map(([key, value]) => ({ key, label: FIELD_LABELS[key] ?? key, value })),
-    ];
+  // ---- Derived: extraction → record → checks → questions ----
+
+  protected readonly extraction = computed<Extraction | null>(() =>
+    this.started() ? extractForSkill([this.description(), ...this.extraNarrative()].join('\n\n')) : null,
+  );
+
+  protected readonly values = computed<Record<string, Value>>(() => ({
+    ...(this.extraction()?.values ?? {}),
+    ...this.userValues(),
+  }));
+
+  protected readonly fieldMeta = computed<Record<string, FieldMeta>>(() => {
+    const out: Record<string, FieldMeta> = { ...(this.extraction()?.meta ?? {}) };
+    for (const key of this.confirmed()) {
+      if (out[key]) out[key] = { ...out[key], provenance: 'user', confidence: 1, rationale: `${out[key].rationale} Confirmed by you.` };
+    }
+    for (const [key, value] of Object.entries(this.userValues())) {
+      out[key] = { provenance: 'user', confidence: 1, evidence: display(value), rationale: 'Provided by you.' };
+    }
+    return out;
   });
 
-  protected readonly activeRelationships = computed(() =>
-    this.relationships().filter((r) => r.status !== 'rejected'),
+  protected readonly relationships = computed<Relationship[]>(() => {
+    const decisions = this.relDecisions();
+    return [...(this.extraction()?.relationships ?? []), ...this.extraRelationships()].map((r) => {
+      const decision = decisions[`${r.type}:${r.name}`];
+      return decision ? { ...r, status: decision } : r;
+    });
+  });
+
+  protected readonly record = computed<CheckRecord>(() =>
+    toCheckRecord({
+      role: this.role(),
+      subsidiaryId: this.subsidiaryId(),
+      name: this.name().trim(),
+      values: this.values(),
+      meta: this.fieldMeta(),
+      relationships: this.relationships(),
+      description: this.description(),
+    }),
   );
 
-  protected readonly score = computed(() =>
+  protected readonly report = computed<RopaCheckReport>(() =>
+    runRopaChecks(this.record(), { inventory: INVENTORY, posture: POSTURE, existing: EXISTING }),
+  );
+
+  protected readonly questions = computed<Question[]>(() =>
     this.started()
-      ? completeness(
-          this.finalFields(),
-          this.activeRelationships(),
-          Boolean(this.name().trim()),
-          true,
-          Boolean(this.subsidiaryId()),
-        )
-      : 0,
+      ? planQuestions({ role: this.role(), record: this.record(), report: this.report(), handled: new Set(this.handled()) })
+      : [],
   );
 
-  /** One row per RoPA field, in a fixed order, for the draft panel. */
-  protected readonly rows = computed(() =>
-    FIELD_KEYS.map((key) => ({
-      key,
-      label: FIELD_LABELS[key] ?? key,
-      field: this.fields().find((f) => f.key === key),
-      answer: this.answers()[key],
-      skipped: this.skipped().includes(key),
-      asking: this.pending() === key,
-    })),
-  );
+  /** Draft panel: the checker's field list, with values and evidence. */
+  protected readonly fieldRows = computed(() => {
+    const values = this.values();
+    const meta = this.fieldMeta();
+    const pending = this.pending()?.field;
+    return this.report().fields.map((f) => ({
+      ...f,
+      value: display(values[f.key]),
+      meta: meta[f.key] as FieldMeta | undefined,
+      asking: pending === f.key,
+      skipped: this.skipped().some((id) => id.endsWith(`:${f.key}`)),
+    }));
+  });
+
+  protected readonly relationshipRows = computed(() => {
+    const report = this.report();
+    return this.relationships()
+      .filter((r) => r.status !== 'rejected')
+      .map((r) => {
+        const checked = report.relationships.find((x) => x.type === r.type && x.name === r.name);
+        return { ...r, resolved: checked?.resolved ?? false, special: checked?.special || /special-category/i.test(r.rationale) };
+      });
+  });
+
+  /** Validation warnings, each with the answer recorded against it, if any. */
+  protected readonly checkRows = computed(() => {
+    const notes = this.notes();
+    const planned = this.questions();
+    return this.report().validation.map((w) => {
+      const noteKey = Object.keys(notes).find((k) =>
+        (w.field === 'legalBasis' && /Art\. 9/.test(w.issue) && k === 'art9Condition') ||
+        (w.field === 'purpose' && k === 'automatedDecisionsNote') ||
+        (w.field === 'subProcessors' && k === 'subProcessorAuthorisation') ||
+        (w.field === 'processingCategories' && /special-category/i.test(w.issue) && k === 'specialInstructionsNote') ||
+        (w.field === 'processingCategories' && /automated/i.test(w.issue) && k === 'automatedDecisionsNote'),
+      );
+      return { ...w, answer: noteKey ? notes[noteKey] : undefined, open: planned.some((q) => q.warning === w || q.warning?.issue === w.issue) };
+    });
+  });
 
   protected readonly canSubmit = computed(
-    () => this.started() && Boolean(this.name().trim()) && Boolean(this.subsidiaryId()) && !this.busy(),
+    () => this.started() && Boolean(this.name().trim()) && Boolean(this.subsidiaryId()) && !this.busy() && this.phase() !== 'describe',
   );
 
   protected readonly suggestions = computed<Suggestion[]>(() => {
     if (this.busy()) return [];
     if (this.phase() === 'describe') return STARTERS;
-    if (this.phase() === 'followups') return [{ text: SKIP_CHIP, fill: false }];
+    if (this.phase() === 'closing') {
+      const q = this.pending();
+      return [...(q?.chips ?? []).map((text) => ({ text, fill: false })), { text: SKIP_CHIP, fill: false }];
+    }
     return [];
   });
 
@@ -284,8 +394,8 @@ export class AiAssisted {
     switch (this.phase()) {
       case 'describe':
         return 'Describe the activity: who the data is about, what you collect and why, the tools involved, how long you keep it…';
-      case 'followups':
-        return 'Type your answer, or skip this question';
+      case 'closing':
+        return 'Type your answer, pick a suggestion, or skip';
       default:
         return 'Message the RoPA assistant';
     }
@@ -298,24 +408,27 @@ export class AiAssisted {
       text: '',
       source:
         `Hi ${first}. Describe a processing activity in your own words, or attach a document about it, ` +
-        `and I'll draft its RoPA record.\n\nI quote your text as evidence for every value I fill in, ` +
-        `and I'll ask about anything that's missing. You can watch the draft build on the right.`,
+        `and I'll draft its Article 30 record using the ropa-authoring skill.\n\n` +
+        `Every value I fill in quotes your text, I run the skill's checks as we go, and I'll ask about ` +
+        `anything that's missing or needs confirming. Watch the draft and its checks build on the right.`,
     });
   }
 
-  // ---- Conversation -------------------------------------------------------
+  // ---- Conversation ----------------------------------------------------------
 
   protected onSend(prompt: string): void {
     // Read attachments synchronously: the tray clears once the send succeeds (AST-09).
     const files = this.files();
     if (this.busy()) return;
-    const text = prompt === SAMPLE_CHIP ? SAMPLE_DESCRIPTION : prompt;
+    const sample = SAMPLE_CHIPS[prompt];
+    const text = sample?.text ?? prompt;
     const userTurn = this.#push({
       from: 'user',
       text,
       meta: files.length ? `Attached ${files.map((f) => f.name).join(', ')}` : undefined,
     });
     this.#snapshots.set(userTurn.id, this.#snapshot());
+    if (sample && !this.name().trim()) this.name.set(sample.name);
     this.#reply(text, files);
   }
 
@@ -347,14 +460,14 @@ export class AiAssisted {
   protected onStreamComplete(id: number): void {
     const after = this.#after.get(id);
     this.#after.delete(id);
-    if (!this.#abort || this.#abort.signal !== this.#currentSignal) return;
+    if (!this.#abort) return; // the greeting
     const stopped = this.#abort.signal.aborted;
     this.#abort = null;
     this.busy.set(false);
     if (stopped) {
-      // Undo whatever the stopped turn changed in the draft, and drop the
-      // partial reply. OneCore only offers Edit on a user turn that is the
-      // newest message, so this leaves the user's message editable to resend.
+      // Undo whatever the stopped turn changed, and drop the partial reply.
+      // OneCore only offers Edit on a user turn that is the newest message,
+      // so this leaves the user's message editable to resend.
       const lastUser = [...this.turns()].reverse().find((t) => t.from === 'user');
       const snapshot = lastUser && this.#snapshots.get(lastUser.id);
       if (snapshot) this.#restore(snapshot);
@@ -366,18 +479,15 @@ export class AiAssisted {
     after?.();
   }
 
-  #currentSignal: AbortSignal | null = null;
-
   #reply(prompt: string, files: File[]): void {
     const controller = new AbortController();
     this.#abort = controller;
-    this.#currentSignal = controller.signal;
     this.busy.set(true);
     const id = this.#nextId++;
     this.#push({ id, from: 'assistant', text: '', source: this.#send(id, prompt, files, controller.signal) });
   }
 
-  /** The one send path: apply the turn's effects, then stream the reply. */
+  /** The one send path (AST-01): apply the turn's effects, then stream the reply. */
   async *#send(turnId: number, prompt: string, files: File[], signal: AbortSignal): AsyncIterable<string> {
     await pause(THINKING_MS, signal);
     if (signal.aborted) return;
@@ -406,91 +516,234 @@ export class AiAssisted {
       : '';
 
     switch (this.phase()) {
+      // SKILL.md steps 1 and 3: gather the description, extract a draft.
       case 'describe': {
         const description = [prompt, ...docs.map((d) => d.text)].filter((t) => t.trim()).join('\n\n').trim();
         if (description.length < MIN_DESCRIPTION) {
           return {
             text:
               unreadableNote +
-              "I need a bit more to go on. Tell me who the data is about, what you collect and why, which tools " +
+              'I need a bit more to go on. Tell me who the data is about, what you collect and why, which tools ' +
               "or vendors are involved, how long you keep it, and where it's stored.",
           };
         }
-        const { fields, relationships } = extractDraft(description);
         this.description.set(description);
         this.sourceFile.set(docs[0]?.name);
-        this.fields.set(fields);
-        this.relationships.set(relationships);
-        if (description === SAMPLE_DESCRIPTION && !this.name().trim()) this.name.set('Candidate screening');
+        const x = this.extraction();
+        const cue = x?.roleCue;
+        this.roleCue.set(cue);
+        if (cue) this.role.set(cue.role);
         this.phase.set('details');
 
+        const found = Object.keys(x?.values ?? {}).length;
+        const links = x?.relationships.length ?? 0;
         const from = docs.length ? `your document${prompt.trim() ? ' and message' : ''}` : 'your description';
-        const found = fields.length
-          ? `I've drafted ${fields.length} field${fields.length === 1 ? '' : 's'} from ${from}`
-          : `I couldn't find any RoPA fields in ${from}, so I'll ask about each one`;
-        const links = relationships.length
-          ? ` and matched ${relationships.length} item${relationships.length === 1 ? '' : 's'} from your inventory`
-          : '';
         return {
           text:
             unreadableNote +
-            `${found}${links}. Each value quotes the text it came from, so you can check it in the draft on the right.` +
-            `\n\nBefore I go further, I need three details a description can't settle.`,
+            (found
+              ? `I've extracted ${plural(found, 'value')} from ${from}`
+              : `I couldn't find any Article 30 values in ${from}, so I'll ask about each one`) +
+            (links ? ` and ${plural(links, 'linked item')} (vendors, systems and data categories)` : '') +
+            '. Each value quotes the text it came from.\n\n' +
+            "Next I need the record's name, the group company that owns it, and its role, because the role decides " +
+            'which Article 30 fields apply.',
           after: () => this.openChain(),
         };
       }
 
+      // SKILL.md step 2 done (role and entity); step 4: run the checks.
       case 'details': {
-        this.phase.set('followups');
-        return this.#askNext(
-          `Thanks. ${this.name().trim()} is recorded as a ${ROLE_LABELS[this.role()].toLowerCase()} activity ` +
-            // Some company names already end in a full stop ("Solera UK Ltd.").
-          `owned by ${this.subsidiaryLabel(this.subsidiaryId()).replace(/\.$/, '')}.`,
-        );
+        this.phase.set('closing');
+        const r = this.report();
+        const entity = r.owningEntity?.path ?? this.subsidiaryLabel(this.subsidiaryId());
+        const cue = this.roleCue();
+        const why =
+          cue && cue.role === this.role()
+            ? ` because your description says "${cue.evidence.replace(/[.]+$/, '')}"`
+            : cue
+              ? ` (your description pointed to ${ROLE_LABELS[cue.role].toLowerCase()}, but you chose otherwise)`
+              : '';
+        const article = this.role() === 'processor' ? 'Art. 30(2), scored on its seven required items' : 'Art. 30(1)';
+        const counts = [
+          r.gaps.length ? plural(r.gaps.length, 'gap') : '',
+          r.validation.length ? plural(r.validation.length, 'check') + ' to look at' : '',
+          r.needsReview.length + r.lowConfidence.length ? plural(r.needsReview.length + r.lowConfidence.length, 'value') + ' to confirm' : '',
+        ].filter(Boolean);
+        const lead =
+          `I've recorded ${this.name().trim()} as a ${ROLE_LABELS[this.role()].toLowerCase()} record${why}, ` +
+          `owned by ${entity.replace(/\.$/, '')}.\n\n` +
+          `I ran the ropa-authoring checks: it's ${r.completeness}% complete under ${article}` +
+          (counts.length ? `, with ${counts.join(', ')}.` : '.') +
+          (this.role() === 'processor'
+            ? " As the processor, the record doesn't carry a legal basis, purpose or retention period of its own; those are the controller's decisions."
+            : '') +
+          " Let's close the gaps one at a time.";
+        return this.#askNext(lead);
       }
 
-      case 'followups': {
-        const key = this.pending();
-        if (!key) return this.#askNext('');
-        const label = (FIELD_LABELS[key] ?? key).toLowerCase();
-        if (prompt === SKIP_CHIP || /^skip\b/i.test(prompt.trim())) {
-          this.skipped.update((s) => [...s, key]);
-          return this.#askNext(`No problem. I'll leave the ${label} for the reviewer.`);
-        }
-        this.answers.update((a) => ({ ...a, [key]: prompt.trim() }));
-        return this.#askNext(`Got it. I've added that as the ${label}.`);
+      // SKILL.md step 5: close the gaps.
+      case 'closing': {
+        const q = this.pending();
+        if (!q) return this.#askNext('');
+        const ack = this.#applyAnswer(q, prompt.trim());
+        return this.#askNext(ack);
       }
 
       case 'ready':
         return {
           text:
-            "The draft is ready. Check it on the right and send it to Pending inventory, where a reviewer " +
+            'The draft is ready. Check it on the right and send it to Pending inventory, where a reviewer ' +
             'approves it before it becomes a processing activity.',
         };
     }
   }
 
-  #askNext(lead: string): Reply {
-    const open = FIELD_KEYS.filter(
-      (k) => !this.fields().some((f) => f.key === k) && !this.answers()[k] && !this.skipped().includes(k),
-    );
-    const next = open[0];
-    const prefix = lead ? `${lead}\n\n` : '';
-    if (next) {
-      this.pending.set(next);
-      const left = open.length === 1 ? 'One thing is still missing.' : `${open.length} things are still missing.`;
-      return { text: `${prefix}${left} ${FOLLOW_UPS[next]}` };
+  /** Apply the user's answer to the pending question; returns the acknowledgement. */
+  #applyAnswer(q: Question, answer: string): string {
+    this.#markHandled(q.id);
+
+    if (answer === SKIP_CHIP || /^skip\b/i.test(answer)) {
+      this.skipped.update((s) => [...s, q.id]);
+      return "No problem. I'll leave that open for the reviewer.";
     }
-    this.pending.set(null);
-    this.phase.set('ready');
-    return {
-      text:
-        `${prefix}That's everything I need. The record is ${this.score()}% complete. ` +
-        `Check the draft on the right, then send it to Pending inventory, where a reviewer approves it.`,
-    };
+
+    const setValue = (field: string, value: Value) => this.userValues.update((v) => ({ ...v, [field]: value }));
+    switch (q.mode) {
+      case 'set':
+        setValue(q.field, answer);
+        break;
+      case 'list':
+        setValue(q.field, splitList(answer));
+        break;
+      case 'parties':
+        setValue(q.field, parseParties(answer));
+        break;
+      case 'append': {
+        const current = display(this.values()[q.field]);
+        setValue(q.field, current ? `${current.replace(/[.]+$/, '')}; ${answer}` : answer);
+        break;
+      }
+      case 'legalBasis':
+        setValue('legalBasis', normaliseLegalBasis(answer));
+        break;
+      case 'contact': {
+        const parties = ((this.values()[q.field] as Party[] | undefined) ?? []).map((p) =>
+          p.name === q.party ? { ...p, contact: answer } : p,
+        );
+        setValue(q.field, parties);
+        break;
+      }
+      case 'entity': {
+        const match = SUBSIDIARIES.find((s) => s.name === answer) ?? SUBSIDIARIES.find((s) => s.name.toLowerCase().includes(answer.toLowerCase()));
+        if (!match) return `I couldn't match "${answer}" to a group company, so I've left the owning entity as it is.`;
+        this.subsidiaryId.set(match.id);
+        return `Got it. ${match.name.replace(/\.$/, '')} owns this record.`;
+      }
+      case 'relationship': {
+        const decision = answer === REMOVE_CHIP || /^(remove|no)\b/i.test(answer) ? 'rejected' : 'accepted';
+        this.relDecisions.update((d) => ({ ...d, [q.party!]: decision }));
+        return decision === 'rejected'
+          ? `Removed ${q.label} from the record.`
+          : `Kept ${q.label}. It's flagged for adding to the inventory.`;
+      }
+      case 'confirm': {
+        if (answer === CONFIRM_ALL_CHIP) {
+          const rest = this.questions().filter((x) => x.kind === 'review');
+          this.confirmed.update((c) => [...c, q.field, ...rest.map((x) => x.field)]);
+          rest.forEach((x) => this.#markHandled(x.id));
+          return `Thanks, I've marked ${plural(rest.length + 1, 'value')} as confirmed.`;
+        }
+        if (answer === CONFIRM_CHIP || /^(yes|correct|right|confirmed?)\b/i.test(answer)) {
+          this.confirmed.update((c) => [...c, q.field]);
+          return "Thanks, that's confirmed.";
+        }
+        const field = q.field;
+        setValue(field, field === 'dataSubjectCategories' || field === 'processingCategories' ? splitList(answer) : answer);
+        return "Thanks, I've corrected it.";
+      }
+      case 'note':
+        this.notes.update((n) => ({ ...n, [q.field]: answer }));
+        return "Noted. I've recorded your answer against the check for the reviewer.";
+      case 'describe': {
+        // Re-extract from the full narrative (SKILL.md step 5); keep anything extraction still misses.
+        const before = this.relationships().length;
+        this.extraNarrative.update((n) => [...n, answer]);
+        const type: Relationship['type'] = q.field === 'personalData' ? 'personalData' : 'vendor';
+        const covered = this.relationships().some((r) => (type === 'personalData' ? r.type === 'personalData' : r.type !== 'personalData'));
+        if (!covered || this.relationships().length === before) {
+          const added = splitList(answer).map<Relationship>((n) => ({
+            type,
+            name: n,
+            confidence: 1,
+            evidence: answer,
+            rationale: 'Named by you.',
+            status: 'suggested',
+          }));
+          this.extraRelationships.update((r) => [...r, ...added]);
+        }
+        return "Got it. I've added that to the record.";
+      }
+    }
+
+    // Some checks only clear when the value meets them; say so if this one didn't.
+    const still = this.report().validation.find((w) => q.warning && w.issue === q.warning.issue);
+    const gapStill = q.kind === 'gap' && this.report().gaps.includes(q.label);
+    if (still) return `I've added that, but the check still flags it: ${still.issue} I'll leave it for the reviewer.`;
+    if (gapStill) return "I've added that, but the check still reads it as missing. I'll leave it for the reviewer.";
+    return "Got it. I've added that.";
   }
 
-  // ---- Record details chain ------------------------------------------------
+  #askNext(lead: string): Reply {
+    const prefix = lead ? `${lead}\n\n` : '';
+    const open = this.questions();
+    const next = open[0];
+    if (next) {
+      this.pending.set(next);
+      const left = open.length > 1 ? `(${open.length} to go) ` : '(Last one) ';
+      return { text: `${prefix}${left}${next.prompt}` };
+    }
+
+    // SKILL.md step 6: propose the record.
+    this.pending.set(null);
+    this.phase.set('ready');
+    const r = this.report();
+    const assessments = r.posture.requiredAssessments;
+    // Critical and warning checks the conversation didn't resolve or record an answer against.
+    const answered = new Set(this.checkRows().filter((c) => c.answer).map((c) => c.issue));
+    const openChecks = r.validation.filter((w) => w.severity !== 'info' && !answered.has(w.issue));
+    const lines = [
+      `That's everything I can check. The record is ${r.completeness}% complete` +
+        (r.incomplete ? ', below the 80% the dashboard flags as incomplete.' : '.'),
+      assessments.length
+        ? `Required assessments: ${assessments.map((a) => `${a.name}${a.owner ? ` (owner: ${a.owner})` : ''}`).join('; ')}.`
+        : 'No assessments are required.',
+      openChecks.length
+        ? `${plural(openChecks.length, 'check is', 'checks are')} still flagged: ${openChecks.map((w) => w.issue.split(/ — |\. /)[0]).join('; ')}.`
+        : '',
+      `Review it ${r.posture.reviewCadence.label.toLowerCase()} (${r.posture.reviewCadence.rule.toLowerCase()})` +
+        (r.posture.requireCertification ? ', with certification at each review.' : '.'),
+      this.skipped().length || r.gaps.length
+        ? `Still open for the reviewer: ${[...r.gaps, ...this.skipped().map((id) => this.#labelFor(id))].filter((v, i, a) => a.indexOf(v) === i).join(', ')}.`
+        : '',
+      this.role() === 'processor'
+        ? "As a processor record, it doesn't replace each client's own Art. 30(1) record."
+        : '',
+      'This is a draft for human review. Send it to Pending inventory, where a reviewer approves it.',
+    ];
+    return { text: `${prefix}${lines.filter(Boolean).join(' ')}` };
+  }
+
+  #labelFor(questionId: string): string {
+    const key = questionId.split(':').slice(1).join(':');
+    return this.report().fields.find((f) => f.key === key)?.label ?? key.replace(/^.*?:/, '');
+  }
+
+  #markHandled(id: string): void {
+    this.handled.update((h) => (h.includes(id) ? h : [...h, id]));
+  }
+
+  // ---- Record details chain (SKILL.md step 2) -----------------------------------
 
   protected openChain(): void {
     this.chainOpen.set(true);
@@ -509,9 +762,9 @@ export class AiAssisted {
     this.chainOpen.set(false);
     this.chainStep.set(0);
     const summary =
-      `Activity name: ${this.name().trim()}\n` +
+      `Record name: ${this.name().trim()}\n` +
       `Owning entity: ${this.subsidiaryLabel(this.subsidiaryId())}\n` +
-      `My role: ${ROLE_LABELS[this.role()]}`;
+      `Role: ${ROLE_LABELS[this.role()]}`;
     this.onSend(summary);
     this.#focusPrompt();
   }
@@ -520,37 +773,34 @@ export class AiAssisted {
     afterNextRender(() => this.promptInput()?.nativeElement.focus(), { injector: this.#injector });
   }
 
-  // ---- Draft panel ---------------------------------------------------------
-
-  protected confidenceIntent(c: number) {
-    return BAND_INTENT[confidenceBand(c)];
-  }
-
-  protected confidenceLabel(c: number): string {
-    return `${confidenceBand(c)} - ${Math.round(c * 100)}%`;
-  }
+  // ---- Draft panel -------------------------------------------------------------
 
   protected rejectRelationship(r: Relationship): void {
-    this.relationships.update((rs) => rs.map((x) => (x === r ? { ...x, status: 'rejected' } : x)));
+    this.relDecisions.update((d) => ({ ...d, [`${r.type}:${r.name}`]: 'rejected' }));
   }
 
   protected submit(): void {
     if (!this.canSubmit()) return;
+    const values = this.values();
+    const meta = this.fieldMeta();
+    const fields: DraftField[] = this.report()
+      .fields.filter((f) => f.filled && values[f.key] !== undefined)
+      .map((f) => ({ key: f.key, label: f.label, value: display(values[f.key]), meta: meta[f.key] }));
     const saved = this.#drafts.add({
       name: this.name().trim(),
       role: this.role(),
       subsidiaryId: this.subsidiaryId() ?? '',
       description: this.description(),
-      fields: this.finalFields(),
-      relationships: this.activeRelationships(),
-      completeness: this.score(),
+      fields,
+      relationships: this.relationships().filter((r) => r.status !== 'rejected'),
+      completeness: this.report().completeness,
       sourceFileName: this.sourceFile(),
       submittedBy: SIGNED_IN_USER,
     });
     this.#router.navigate(['/pending-inventory'], { queryParams: { draft: saved.id } });
   }
 
-  // ---- State helpers -------------------------------------------------------
+  // ---- State helpers -------------------------------------------------------------
 
   #push(turn: Omit<Turn, 'id'> & { id?: number }): Turn {
     const full: Turn = { ...turn, id: turn.id ?? this.#nextId++ };
@@ -563,14 +813,19 @@ export class AiAssisted {
       phase: this.phase(),
       description: this.description(),
       sourceFile: this.sourceFile(),
-      fields: this.fields(),
-      relationships: this.relationships(),
-      answers: this.answers(),
+      extraNarrative: this.extraNarrative(),
+      extraRelationships: this.extraRelationships(),
+      userValues: this.userValues(),
+      confirmed: this.confirmed(),
+      notes: this.notes(),
+      relDecisions: this.relDecisions(),
+      handled: this.handled(),
       skipped: this.skipped(),
       pending: this.pending(),
       name: this.name(),
       subsidiaryId: this.subsidiaryId(),
       role: this.role(),
+      roleCue: this.roleCue(),
     };
   }
 
@@ -578,14 +833,19 @@ export class AiAssisted {
     this.phase.set(s.phase);
     this.description.set(s.description);
     this.sourceFile.set(s.sourceFile);
-    this.fields.set(s.fields);
-    this.relationships.set(s.relationships);
-    this.answers.set(s.answers);
+    this.extraNarrative.set(s.extraNarrative);
+    this.extraRelationships.set(s.extraRelationships);
+    this.userValues.set(s.userValues);
+    this.confirmed.set(s.confirmed);
+    this.notes.set(s.notes);
+    this.relDecisions.set(s.relDecisions);
+    this.handled.set(s.handled);
     this.skipped.set(s.skipped);
     this.pending.set(s.pending);
     this.name.set(s.name);
     this.subsidiaryId.set(s.subsidiaryId);
     this.role.set(s.role);
+    this.roleCue.set(s.roleCue);
     this.chainOpen.set(false);
   }
 }

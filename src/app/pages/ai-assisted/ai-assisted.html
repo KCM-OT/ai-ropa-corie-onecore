@@ -42,7 +42,7 @@
       <div class="chain">
         <oc-assistant-steps label="Record details" [(step)]="chainStep" (close)="closeChain()">
           <ng-template ocAssistantStep>
-            <p ocAssistantStepTitle class="step-title">What should this processing activity be called?</p>
+            <p ocAssistantStepTitle class="step-title">What should this record be called?</p>
             <oc-input
               ariaLabel="Activity name"
               placeholder="e.g. Candidate screening"
@@ -73,8 +73,14 @@
           </ng-template>
 
           <ng-template ocAssistantStep>
-            <p ocAssistantStepTitle class="step-title">What's your role in this activity?</p>
-            <oc-radio-group aria-label="Your role" orientation="vertical" [ngModel]="role()" (ngModelChange)="role.set($event)">
+            <p ocAssistantStepTitle class="step-title">What role does the owning company play in this activity?</p>
+            @if (roleCue(); as cue) {
+              <p class="step-cue">
+                <oc-icon name="ai-sparkles" size="sm" />
+                <span>Suggested: <strong>{{ roleLabels[cue.role] }}</strong>, from “{{ cue.evidence }}”</span>
+              </p>
+            }
+            <oc-radio-group aria-label="Role" orientation="vertical" [ngModel]="role()" (ngModelChange)="role.set($event)">
               @for (r of roles; track r) {
                 <button oc-radio-item [value]="r">{{ roleLabels[r] }}</button>
               }
@@ -82,7 +88,7 @@
             <p class="step-help">{{ roleHelp[role()] }}</p>
             <div class="step-actions">
               @if (!name().trim() || !subsidiaryId()) {
-                <span class="step-help">Add the activity name and owning entity first.</span>
+                <span class="step-help">Add the record name and owning entity first.</span>
               }
               <button oc-button variant="accent" size="sm" [disabled]="!name().trim() || !subsidiaryId()" (click)="finishDetails()">
                 <oc-icon slot="leading" name="ai-sparkles" />
@@ -150,7 +156,7 @@
     }
   </oc-assistant-thread>
 
-  <!-- Live draft -->
+  <!-- Live draft, checked with the ropa-authoring skill -->
   <aside class="draft" aria-labelledby="draft-title">
     <div class="draft-scroll">
       <div class="draft-head">
@@ -164,16 +170,20 @@
 
       <dl class="basics">
         <div>
-          <dt>Activity name</dt>
+          <dt>Record name</dt>
           <dd [class.missing]="!name().trim()">{{ name().trim() || 'Not set yet' }}</dd>
         </div>
         <div>
           <dt>Owning entity</dt>
-          <dd [class.missing]="!subsidiaryId()">{{ subsidiaryId() ? subsidiaryLabel(subsidiaryId()) : 'Not set yet' }}</dd>
+          <dd [class.missing]="!subsidiaryId()">{{ report().owningEntity?.path || 'Not set yet' }}</dd>
         </div>
         <div>
           <dt>Role</dt>
-          <dd [class.missing]="phase() === 'describe'">{{ phase() === 'describe' ? 'Not set yet' : roleLabels[role()] }}</dd>
+          @if (phase() === 'describe' || phase() === 'details') {
+            <dd class="missing">Not set yet</dd>
+          } @else {
+            <dd>{{ report().roleLabel }} <span class="sub">· {{ report().roleDetail }}</span></dd>
+          }
         </div>
         @if (sourceFile(); as file) {
           <div>
@@ -185,71 +195,125 @@
 
       <div class="score">
         <div class="score-row">
-          <span>Completeness</span>
-          <strong>{{ score() }}%</strong>
+          <span>Completeness <span class="sub">{{ role() === 'processor' ? 'Art. 30(2), 7 items' : 'Art. 30(1), 13 items' }}</span></span>
+          <strong>{{ started() ? report().completeness : 0 }}%</strong>
         </div>
-        <oc-progress size="sm" label="Record completeness" [value]="score()" [variant]="score() >= 80 ? 'success' : 'primary'" />
+        <oc-progress
+          size="sm"
+          label="Record completeness"
+          [value]="started() ? report().completeness : 0"
+          [variant]="report().incomplete ? 'warning' : 'success'"
+        />
+        @if (started() && report().incomplete) {
+          <p class="sub">Below 80%: the dashboard flags the record as incomplete.</p>
+        }
       </div>
 
       @if (!started()) {
-        <p class="empty">The draft fills in as you describe the activity. Every value the assistant adds quotes the text it came from.</p>
+        <p class="empty">
+          The draft fills in as you describe the activity. Every value quotes the text it came from, and the
+          ropa-authoring skill's checks run as it changes.
+        </p>
       } @else {
         <h3>Fields</h3>
         <ul class="fields">
-          @for (r of rows(); track r.key) {
-            <li [class.asking]="r.asking">
+          @for (f of fieldRows(); track f.key) {
+            <li [class.asking]="f.asking" [class.gap]="!f.filled">
               <div class="field-head">
-                <span class="field-label">{{ r.label }}</span>
-                @if (r.field?.meta; as m) {
-                  <oc-status size="sm" [intent]="confidenceIntent(m.confidence)" [label]="confidenceLabel(m.confidence)" intentLabel="confidence" />
-                } @else if (r.answer) {
-                  <oc-badge size="sm" color="blue">From you</oc-badge>
-                } @else if (r.asking) {
+                <span class="field-label">{{ f.label }}</span>
+                @if (f.asking) {
                   <oc-badge size="sm" color="purple">Asking now</oc-badge>
+                } @else if (f.filled && f.meta?.provenance === 'user') {
+                  <oc-badge size="sm" color="blue">From you</oc-badge>
+                } @else if (f.band) {
+                  <oc-status size="sm" [intent]="bandIntent[f.band]" [label]="f.band" intentLabel="confidence" />
                 }
               </div>
-              @if (r.field; as f) {
+              @if (f.filled) {
                 <p class="field-value">{{ f.value }}</p>
-                @if (f.meta; as m) {
-                  <blockquote>“{{ m.evidence }}”</blockquote>
+                @if (f.meta && f.meta.provenance === 'ai') {
+                  <blockquote>“{{ f.meta.evidence }}”</blockquote>
                 }
-              } @else if (r.answer) {
-                <p class="field-value">{{ r.answer }}</p>
-              } @else if (r.skipped) {
+              } @else if (f.skipped) {
                 <p class="field-value missing">Skipped. Left for the reviewer.</p>
               } @else {
-                <p class="field-value missing">Not found yet</p>
+                <p class="field-value missing">Missing</p>
               }
             </li>
           }
         </ul>
 
-        <h3>Linked inventory</h3>
-        @if (activeRelationships().length === 0) {
-          <p class="empty">No vendors, assets or data categories from your inventory were named.</p>
+        <h3>{{ role() === 'processor' ? 'Sub-processors, systems and data' : 'Linked inventory' }}</h3>
+        @if (relationshipRows().length === 0) {
+          <p class="empty">No vendors, systems or data categories named yet.</p>
         } @else {
           <div class="links" role="list" aria-label="Linked inventory">
-            @for (r of activeRelationships(); track r.type + r.name) {
+            @for (r of relationshipRows(); track r.type + r.name) {
               <oc-tag
                 role="listitem"
                 size="sm"
                 removable
-                [color]="r.type === 'personalData' ? 'purple' : r.type === 'vendor' ? 'blue' : 'teal'"
+                [color]="r.special ? 'red' : r.type === 'personalData' ? 'purple' : r.type === 'vendor' ? 'blue' : 'teal'"
                 [removeLabel]="'Remove ' + r.name"
-                [title]="relationshipLabel[r.type] + ': ' + r.rationale"
+                [title]="relationshipLabel[r.type] + (r.resolved ? '' : ' (not in your inventory)') + ': ' + r.rationale"
                 (remove)="rejectRelationship(r)"
               >
-                {{ r.name }}
+                {{ r.name }}{{ r.special ? ' · Art. 9' : '' }}{{ r.resolved ? '' : ' · not in inventory' }}
               </oc-tag>
             }
           </div>
         }
+
+        <h3>Checks</h3>
+        @if (checkRows().length === 0) {
+          <p class="empty">No warnings.</p>
+        } @else {
+          <ul class="checks">
+            @for (c of checkRows(); track c.field + c.issue) {
+              <li>
+                <oc-badge size="sm" [color]="severityColor[c.severity]">{{ severityLabel[c.severity] }}</oc-badge>
+                <p>{{ c.issue }}</p>
+                @if (c.answer) {
+                  <p class="answer">Your answer: {{ c.answer }}</p>
+                }
+              </li>
+            }
+          </ul>
+        }
+
+        <h3>Posture</h3>
+        @if (report().posture.activeConditions.length) {
+          <div class="links" role="list" aria-label="Risk conditions">
+            @for (c of report().posture.activeConditions; track c) {
+              <oc-tag role="listitem" size="sm">{{ c }}</oc-tag>
+            }
+          </div>
+        }
+        <ul class="assessments">
+          @for (a of report().posture.requiredAssessments; track a.type) {
+            <li>
+              <span class="field-label">{{ a.name }}</span>
+              <span class="sub">Triggered by {{ a.triggeredBy.join(', ').toLowerCase() }}</span>
+              @if (a.owner) {
+                <span class="sub">Owner: {{ a.owner }}</span>
+              }
+            </li>
+          } @empty {
+            <li class="sub">No assessments required.</li>
+          }
+        </ul>
+        <p class="cadence">
+          <strong>Review {{ report().posture.reviewCadence.label.toLowerCase() }}</strong>
+          <span class="sub">
+            {{ report().posture.reviewCadence.rule }}{{ report().posture.requireCertification ? ', certification at each review' : '' }}
+          </span>
+        </p>
       }
     </div>
 
     <div class="draft-foot">
       <button oc-button variant="primary" [disabled]="!canSubmit()" (click)="submit()">Send to Pending inventory</button>
-      <p>A reviewer approves the draft before it becomes a processing activity.</p>
+      <p>Checked with the ropa-authoring skill. A reviewer approves the draft before it becomes a processing activity.</p>
     </div>
   </aside>
 </div>

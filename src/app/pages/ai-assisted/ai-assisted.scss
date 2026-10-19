@@ -248,3 +248,72 @@ blockquote {
     font-size: var(--oc-font-size-xs);
   }
 }
+
+// Suggested role on the role question
+.step-cue {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--oc-spacing-2);
+  margin: 0 0 var(--oc-spacing-3);
+  padding: var(--oc-spacing-2) var(--oc-spacing-3);
+  border-left: 2px solid var(--oc-accent-highlight);
+  background: var(--oc-secondary-light-hover);
+  font-size: var(--oc-font-size-sm);
+  line-height: var(--oc-line-height-relaxed);
+
+  oc-icon {
+    flex-shrink: 0;
+    margin-top: 3px;
+  }
+}
+
+.sub {
+  color: var(--oc-muted-foreground);
+  font-size: var(--oc-font-size-xs);
+  font-weight: var(--oc-font-weight-default);
+}
+
+.fields li.gap .field-label {
+  color: var(--oc-muted-foreground);
+}
+
+.checks,
+.assessments {
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-spacing-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  p {
+    margin: var(--oc-spacing-1) 0 0;
+    font-size: var(--oc-font-size-sm);
+    line-height: var(--oc-line-height-relaxed);
+  }
+}
+
+.checks .answer {
+  padding-left: var(--oc-spacing-2);
+  border-left: 2px solid var(--oc-border);
+  color: var(--oc-muted-foreground);
+  font-size: var(--oc-font-size-xs);
+}
+
+.assessments {
+  margin-top: var(--oc-spacing-3);
+
+  li {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+}
+
+.cadence {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: var(--oc-spacing-4) 0 0;
+  font-size: var(--oc-font-size-sm);
+}

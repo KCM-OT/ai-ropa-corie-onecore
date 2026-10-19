@@ -9,7 +9,8 @@
     "test": "ng test",
     "onecore": "onecore",
     "deploy:preview": "vercel build && vercel deploy --prebuilt",
-    "deploy": "vercel build --prod && vercel deploy --prebuilt --prod"
+    "deploy": "vercel build --prod && vercel deploy --prebuilt --prod",
+    "skill:parity": "node scripts/skill-parity.mjs"
   },
   "prettier": {
     "printWidth": 100,
