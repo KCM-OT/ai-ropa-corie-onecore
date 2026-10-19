@@ -1,4 +1,6 @@
+import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
+import { DEFAULT_HOME, DEMO_HOME, DemoMode } from './shell/demo-mode';
 import { AppShell } from './shell/app-shell';
 
 export const routes: Routes = [
@@ -6,7 +8,8 @@ export const routes: Routes = [
     path: '',
     component: AppShell,
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'processing-activities' },
+      // The home URL opens the AI Assisted page in demo mode, Processing activities otherwise.
+      { path: '', pathMatch: 'full', redirectTo: () => (inject(DemoMode).on() ? DEMO_HOME : DEFAULT_HOME) },
       {
         path: 'processing-activities',
         title: 'Processing activities | Data Mapping',

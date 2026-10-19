@@ -8,6 +8,7 @@ import { OcIconButton } from '@onetrust/onecore/icon-button';
 import { OcSwitch } from '@onetrust/onecore/switch';
 import { filter, map } from 'rxjs';
 import { initials, SIGNED_IN_USER } from '../data/org';
+import { DemoMode } from './demo-mode';
 import { DEMO_NAV, isGroup, MODULE_NAME, NAV, type NavGroup } from './nav';
 
 // Full-height dark sidebar (logo row, module name, nav) beside the global top
@@ -26,7 +27,7 @@ export class AppShell {
   readonly #router = inject(Router);
 
   /** Demo mode hides every nav item except the ones marked `demo`. On by default. */
-  protected readonly demoMode = signal(true);
+  protected readonly demoMode = inject(DemoMode).on;
   protected readonly nav = computed(() => (this.demoMode() ? DEMO_NAV : NAV));
   protected readonly moduleName = MODULE_NAME;
   protected readonly isGroup = isGroup;
