@@ -20,9 +20,7 @@
       }
     </div>
 
-    @if (!demoMode()) {
-      <p class="module-name" [title]="moduleName">{{ moduleName }}</p>
-    }
+    <p class="module-name" [title]="moduleName">{{ moduleName }}</p>
 
     <nav class="nav" [attr.aria-label]="moduleName">
       @for (item of nav(); track item.label) {
