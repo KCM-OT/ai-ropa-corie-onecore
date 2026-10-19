@@ -20,6 +20,8 @@ export type NavItem = NavLink | NavGroup;
 export const MODULE_NAME = 'Data Mapping Automation';
 
 export const NAV: NavItem[] = [
+  // Prototype page, not in the live module's nav.
+  { label: 'AI Assisted RoPA Creation', href: '/ai-assisted-ropa', icon: 'sparkles' },
   {
     label: 'Inventory',
     icon: 'layer-group',

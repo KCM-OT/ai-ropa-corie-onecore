@@ -164,6 +164,18 @@ export function extractDraft(description: string): { fields: DraftField[]; relat
   return { fields, relationships }
 }
 
+// Display labels for the fields the draft fills or asks about.
+export const FIELD_LABELS: Record<string, string> = {
+  purpose: 'Purpose',
+  legalBasis: 'Legal basis',
+  dataSubjectCategories: 'Data subjects',
+  retentionPeriod: 'Retention period',
+  internationalTransfers: 'International transfers',
+  securityMeasures: 'Security measures',
+  businessProcessOwner: 'Business process owner',
+  recipients: 'Recipients',
+}
+
 // Fields the draft can't fill get a follow-up question, per the skill.
 export const FOLLOW_UPS: Record<string, string> = {
   purpose: 'Why does the team use this data?',

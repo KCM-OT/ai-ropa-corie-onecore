@@ -27,6 +27,12 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
 - `/processing-activities/new`: Author with AI. Describe → rule-based draft (`data/extract.ts`) →
   review suggested values, follow-up questions and linked inventory → send to Pending inventory.
 - `/pending-inventory`: pending records plus AI drafts (from `DraftsStore`, kept in localStorage).
+- `/ai-assisted-ropa`: AI Assisted RoPA Creation (prototype-only, top of the sidebar and in the
+  Add processing activity menu). A OneCore `oc-assistant-thread` conversation beside a live draft
+  panel: describe → `oc-assistant-steps` chain for name, entity and role → one follow-up question
+  per missing field → send to Pending inventory. Replies are written in the component and streamed
+  with `[ocStream]` through one `send()`; there's no model. OneCore only shows Edit on a user turn
+  that is the newest message, so Stop drops the partial reply to make the message editable.
 - Every other nav item renders `pages/placeholder.ts`.
 
 Layout: `shell/` holds the app shell (top bar + side nav), `PageHeader`, and `TableFooter`

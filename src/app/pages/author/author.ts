@@ -23,7 +23,7 @@ import { OcStatus } from '@onetrust/onecore/status';
 import { OcTag } from '@onetrust/onecore/tag';
 import { OcTextarea } from '@onetrust/onecore/textarea';
 import { DraftsStore } from '../../data/drafts.store';
-import { completeness, extractDraft, FOLLOW_UPS, SAMPLE_DESCRIPTION } from '../../data/extract';
+import { completeness, extractDraft, FIELD_LABELS, FOLLOW_UPS, SAMPLE_DESCRIPTION } from '../../data/extract';
 import { SIGNED_IN_USER, SUBSIDIARIES, subsidiaryName } from '../../data/org';
 import {
   confidenceBand,
@@ -38,17 +38,6 @@ import { PageHeader } from '../../shell/page-header';
 // After "Draft record", the review step shows the loader for this long before
 // the draft, as the real model call would take a few seconds.
 const DRAFTING_MS = 2000;
-
-const FIELD_LABELS: Record<string, string> = {
-  purpose: 'Purpose',
-  legalBasis: 'Legal basis',
-  dataSubjectCategories: 'Data subjects',
-  retentionPeriod: 'Retention period',
-  internationalTransfers: 'International transfers',
-  securityMeasures: 'Security measures',
-  businessProcessOwner: 'Business process owner',
-  recipients: 'Recipients',
-};
 
 const BAND_INTENT = { high: 'success', medium: 'warning', low: 'error' } as const;
 

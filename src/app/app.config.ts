@@ -14,6 +14,7 @@ import {
   chevronDown,
   chevronLeft,
   circleCheck,
+  circleStop,
   clipboardList,
   columns3,
   cubes,
@@ -24,15 +25,19 @@ import {
   layerGroup,
   magnifyingGlass,
   paperclip,
+  paperPlane,
   plus,
   provideOcIcons,
   questionCircle,
   sidebarLeft,
   sliders,
+  sparkles,
   triangleExclamation,
   wrench,
   xmark,
 } from '@onetrust/onecore/icon';
+
+import { provideChoreography } from '@onetrust/onecore/choreography';
 
 import { routes } from './app.routes';
 
@@ -40,6 +45,8 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes, withComponentInputBinding()),
+    // Motion settings for [ocStream], which streams the AI assistant's replies.
+    provideChoreography({ reducedMotion: 'auto' }),
     // OneCore icons are tree-shaken: register every icon a screen renders.
     // An unregistered name renders nothing (with a dev-mode console error).
     provideOcIcons([
@@ -56,6 +63,7 @@ export const appConfig: ApplicationConfig = {
       chevronDown,
       chevronLeft,
       circleCheck,
+      circleStop,
       clipboardList,
       columns3,
       cubes,
@@ -66,10 +74,12 @@ export const appConfig: ApplicationConfig = {
       layerGroup,
       magnifyingGlass,
       paperclip,
+      paperPlane,
       plus,
       questionCircle,
       sidebarLeft,
       sliders,
+      sparkles,
       triangleExclamation,
       wrench,
       xmark,

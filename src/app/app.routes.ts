@@ -19,6 +19,11 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/author/author').then((m) => m.Author),
       },
       {
+        path: 'ai-assisted-ropa',
+        title: 'AI Assisted RoPA Creation | Data Mapping',
+        loadComponent: () => import('./pages/ai-assisted/ai-assisted').then((m) => m.AiAssisted),
+      },
+      {
         path: 'pending-inventory',
         title: 'Pending inventory | Data Mapping',
         loadComponent: () =>
