@@ -243,6 +243,41 @@ $row-inset: ($rail-width - $icon-size) * 0.5;
   overflow: auto;
 }
 
+// Demo mode switch, pinned to the bottom of the sidebar.
+.sidebar-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--oc-spacing-3);
+  flex-shrink: 0;
+  margin-top: auto;
+  padding: var(--oc-spacing-3) var(--oc-spacing-3) var(--oc-spacing-4) $row-inset;
+  border-top: var(--oc-container-border-width) solid var(--oc-inverse-active);
+  white-space: nowrap;
+
+  label {
+    cursor: pointer;
+  }
+
+  // OneCore draws the "on" track in --oc-muted, which is near-black and
+  // vanishes on this sidebar. Use the brand green of the active nav marker.
+  [oc-switch] {
+    --oc-muted: var(--oc-brand);
+    --oc-muted-hover: var(--oc-brand);
+    --oc-muted-active: var(--oc-brand);
+  }
+
+  // On the rail only the switch shows, centred.
+  .collapsed & {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+
+    label {
+      display: none;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sidebar,
   .row,

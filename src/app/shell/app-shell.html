@@ -20,10 +20,12 @@
       }
     </div>
 
-    <p class="module-name" [title]="moduleName">{{ moduleName }}</p>
+    @if (!demoMode()) {
+      <p class="module-name" [title]="moduleName">{{ moduleName }}</p>
+    }
 
     <nav class="nav" [attr.aria-label]="moduleName">
-      @for (item of nav; track item.label) {
+      @for (item of nav(); track item.label) {
         @if (isGroup(item)) {
           <div class="group">
             <button
@@ -64,6 +66,17 @@
         }
       }
     </nav>
+
+    <div class="sidebar-foot">
+      <button
+        oc-switch
+        id="demo-mode"
+        [(checked)]="demoMode"
+        aria-label="Demo mode"
+        [attr.title]="collapsed() ? 'Demo mode: ' + (demoMode() ? 'on' : 'off') : null"
+      ></button>
+      <label for="demo-mode" class="row-label">Demo mode</label>
+    </div>
   </aside>
 
   <div class="workspace">

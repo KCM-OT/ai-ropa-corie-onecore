@@ -1,13 +1,14 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { OcAvatar } from '@onetrust/onecore/avatar';
 import { OcButton } from '@onetrust/onecore/button';
 import { OcIcon } from '@onetrust/onecore/icon';
 import { OcIconButton } from '@onetrust/onecore/icon-button';
+import { OcSwitch } from '@onetrust/onecore/switch';
 import { filter, map } from 'rxjs';
 import { initials, SIGNED_IN_USER } from '../data/org';
-import { isGroup, MODULE_NAME, NAV, type NavGroup } from './nav';
+import { DEMO_NAV, isGroup, MODULE_NAME, NAV, type NavGroup } from './nav';
 
 // Full-height dark sidebar (logo row, module name, nav) beside the global top
 // bar and the routed page. Styling follows the AI revamp concept
@@ -17,14 +18,16 @@ import { isGroup, MODULE_NAME, NAV, type NavGroup } from './nav';
 // with --oc-* tokens.
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, OcAvatar, OcButton, OcIcon, OcIconButton],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, OcAvatar, OcButton, OcIcon, OcIconButton, OcSwitch],
   templateUrl: './app-shell.html',
   styleUrl: './app-shell.scss',
 })
 export class AppShell {
   readonly #router = inject(Router);
 
-  protected readonly nav = NAV;
+  /** Demo mode hides every nav item except the ones marked `demo`. On by default. */
+  protected readonly demoMode = signal(true);
+  protected readonly nav = computed(() => (this.demoMode() ? DEMO_NAV : NAV));
   protected readonly moduleName = MODULE_NAME;
   protected readonly isGroup = isGroup;
   protected readonly user = SIGNED_IN_USER;

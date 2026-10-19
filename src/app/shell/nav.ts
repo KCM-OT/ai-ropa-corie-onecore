@@ -9,6 +9,8 @@ export interface NavLink {
   href: string;
   /** OneCore icon name. Top-level items only; nested links sit under their group's icon. */
   icon?: OcIconName;
+  /** Stays visible in demo mode, which hides every other nav item. */
+  demo?: boolean;
 }
 export interface NavGroup {
   label: string;
@@ -21,7 +23,7 @@ export const MODULE_NAME = 'Data Mapping Automation';
 
 export const NAV: NavItem[] = [
   // Prototype page, not in the live module's nav.
-  { label: 'AI Assisted RoPA Creation', href: '/ai-assisted-ropa', icon: 'sparkles' },
+  { label: 'AI Assisted RoPA Creation', href: '/ai-assisted-ropa', icon: 'sparkles', demo: true },
   {
     label: 'Inventory',
     icon: 'layer-group',
@@ -72,6 +74,9 @@ export const NAV: NavItem[] = [
   },
   { label: 'Data Mapping Automation settings', href: '/settings', icon: 'sliders' },
 ];
+
+/** The nav shown in demo mode: only the items marked `demo`. */
+export const DEMO_NAV: NavItem[] = NAV.filter((item) => !isGroup(item) && item.demo);
 
 export function isGroup(item: NavItem): item is NavGroup {
   return 'children' in item;
