@@ -338,7 +338,8 @@ export class AiAssisted {
 
   /** Draft panel: the checker's field list, with values and evidence. */
   protected readonly fieldRows = computed(() => {
-    const values = this.values();
+    // Name and description sit on the record itself, not among the extracted values.
+    const values: Record<string, Value> = { ...this.values(), name: this.name().trim(), description: this.description() };
     const meta = this.fieldMeta();
     const pending = this.pending()?.field;
     return this.report().fields.map((f) => ({
