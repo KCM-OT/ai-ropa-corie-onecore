@@ -465,9 +465,30 @@
           </a>
         </div>
       } @else {
-        <button oc-button variant="primary" [disabled]="!canSubmit()" (click)="submit()">
+        <button oc-button variant="primary" [disabled]="!canSubmit()" [ocDialogTrigger]="confirmSend">
           Send to Pending inventory
         </button>
+        <ng-template #confirmSend let-close="close">
+          <oc-dialog>
+            <oc-dialog-header>
+              <h2 ocDialogTitle>Send to Pending inventory?</h2>
+              <p ocDialogDescription>
+                We'll take you back to your Data Mapping page in a new tab. This page stays open here.
+              </p>
+            </oc-dialog-header>
+            <ol class="confirm-steps">
+              <li>Data Mapping opens on Processing activities.</li>
+              <li>{{ name().trim() || 'Your record' }} is there as a new draft, marked Pending.</li>
+              <li>Review the draft and approve it to make it an active processing activity.</li>
+            </ol>
+            <oc-dialog-footer>
+              <button oc-button variant="secondary" (click)="close()">Cancel</button>
+              <button oc-button variant="primary" (click)="submit(); close()">
+                Send and open Data Mapping
+              </button>
+            </oc-dialog-footer>
+          </oc-dialog>
+        </ng-template>
         <p>
           Checked with the ropa-authoring skill. Sending opens Data Mapping, where a reviewer
           approves the draft before it becomes a processing activity.

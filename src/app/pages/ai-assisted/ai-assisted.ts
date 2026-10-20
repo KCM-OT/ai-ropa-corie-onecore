@@ -32,6 +32,14 @@ import {
 import { OcAvatar } from '@onetrust/onecore/avatar';
 import { OcBadge } from '@onetrust/onecore/badge';
 import { OcButton } from '@onetrust/onecore/button';
+import {
+  OcDialog,
+  OcDialogDescription,
+  OcDialogFooter,
+  OcDialogHeader,
+  OcDialogTitle,
+  OcDialogTrigger,
+} from '@onetrust/onecore/dialog';
 import { OcStreamDirective, type ChoreoState } from '@onetrust/onecore/choreography';
 import { OcIcon } from '@onetrust/onecore/icon';
 import { OcIconButton } from '@onetrust/onecore/icon-button';
@@ -212,6 +220,12 @@ function plural(n: number, one: string, many = `${one}s`): string {
     OcAvatar,
     OcBadge,
     OcButton,
+    OcDialog,
+    OcDialogDescription,
+    OcDialogFooter,
+    OcDialogHeader,
+    OcDialogTitle,
+    OcDialogTrigger,
     OcIcon,
     OcIconButton,
     OcInput,
