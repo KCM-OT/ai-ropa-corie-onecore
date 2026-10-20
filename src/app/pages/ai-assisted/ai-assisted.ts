@@ -2,10 +2,13 @@ import {
   afterNextRender,
   Component,
   computed,
+  DestroyRef,
+  effect,
   ElementRef,
   inject,
   Injector,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -47,6 +50,7 @@ import { OcInput } from '@onetrust/onecore/input';
 import { OcProgress } from '@onetrust/onecore/progress';
 import { OcRadioGroup, OcRadioItem } from '@onetrust/onecore/radio';
 import { OcSelect, OcSelectOption } from '@onetrust/onecore/select';
+import { OcSkeleton } from '@onetrust/onecore/skeleton';
 import { OcStatus } from '@onetrust/onecore/status';
 import { OcTag } from '@onetrust/onecore/tag';
 import { OcTextarea } from '@onetrust/onecore/textarea';
@@ -160,6 +164,8 @@ const STARTERS: Suggestion[] = [
 ];
 
 const THINKING_MS = 900;
+/** How long a changed field shows its skeleton before the new value appears. */
+const UPDATE_MS = 1100;
 const WORD_MS = 18;
 const MIN_DESCRIPTION = 60;
 const SEVERITY_LABEL: Record<CheckSeverity, string> = { critical: 'Critical', warning: 'Warning', info: 'Info' };
@@ -234,6 +240,7 @@ function plural(n: number, one: string, many = `${one}s`): string {
     OcRadioItem,
     OcSelect,
     OcSelectOption,
+    OcSkeleton,
     OcStatus,
     OcStreamDirective,
     OcTag,
@@ -299,6 +306,10 @@ export class AiAssisted {
   protected readonly roleCue = signal<Extraction['roleCue']>(undefined);
 
   protected readonly started = computed(() => this.description().length > 0);
+  /** The first reply is building the draft: the panel shows a skeleton of the record until it finishes. */
+  protected readonly creating = signal(false);
+  /** Draft panel blocks whose value just changed; each shows a skeleton for UPDATE_MS. */
+  protected readonly updating = signal<ReadonlySet<string>>(new Set());
 
   // ---- Derived: extraction → record → checks → questions ----
 
@@ -367,6 +378,20 @@ export class AiAssisted {
     }));
   });
 
+  /** What each draft panel block shows, keyed as in `updating`. A change in one flashes that block. */
+  readonly #blockContents = computed<Record<string, string>>(() => {
+    const roleShown = this.phase() !== 'describe' && this.phase() !== 'details';
+    const out: Record<string, string> = {
+      'basic:name': this.name().trim(),
+      'basic:entity': this.report().owningEntity?.path ?? '',
+      'basic:role': roleShown ? `${this.report().roleLabel} ${this.report().roleDetail}` : '',
+    };
+    for (const f of this.fieldRows()) {
+      out[f.key] = [f.filled ? f.value : '', f.meta?.provenance ?? '', f.skipped].join('|');
+    }
+    return out;
+  });
+
   protected readonly relationshipRows = computed(() => {
     const report = this.report();
     return this.relationships()
@@ -419,6 +444,7 @@ export class AiAssisted {
   });
 
   constructor() {
+    this.#flashUpdatedBlocks();
     const first = SIGNED_IN_USER.split(' ')[0];
     this.#push({
       from: 'assistant',
@@ -428,6 +454,41 @@ export class AiAssisted {
         `and I'll draft its Article 30 record using the ropa-authoring skill.\n\n` +
         `Every value I fill in quotes your text, I run the skill's checks as we go, and I'll ask about ` +
         `anything that's missing or needs confirming. Watch the draft and its checks build on the right.`,
+    });
+  }
+
+  protected isUpdating(key: string): boolean {
+    return this.updating().has(key);
+  }
+
+  /**
+   * Shows a skeleton on each panel block whose value changes, whether from the
+   * chat or the user's own input. Blocks that appear for the first time (the
+   * initial draft, or a role switch that changes the field list) don't flash.
+   */
+  #flashUpdatedBlocks(): void {
+    let seen: Record<string, string> = {};
+    const timers = new Map<string, ReturnType<typeof setTimeout>>();
+    inject(DestroyRef).onDestroy(() => timers.forEach(clearTimeout));
+    effect(() => {
+      const now = this.#blockContents();
+      const quiet = this.creating() || !this.started();
+      const changed = quiet ? [] : Object.keys(now).filter((k) => k in seen && seen[k] !== now[k]);
+      seen = now;
+      if (!changed.length) return;
+      untracked(() => {
+        this.updating.update((s) => new Set([...s, ...changed]));
+        for (const key of changed) {
+          clearTimeout(timers.get(key));
+          timers.set(
+            key,
+            setTimeout(() => {
+              timers.delete(key);
+              this.updating.update((s) => new Set([...s].filter((k) => k !== key)));
+            }, UPDATE_MS),
+          );
+        }
+      });
     });
   }
 
@@ -481,6 +542,7 @@ export class AiAssisted {
     const stopped = this.#abort.signal.aborted;
     this.#abort = null;
     this.busy.set(false);
+    this.creating.set(false);
     if (stopped) {
       // Undo whatever the stopped turn changed, and drop the partial reply.
       // OneCore only offers Edit on a user turn that is the newest message,
@@ -500,6 +562,7 @@ export class AiAssisted {
     const controller = new AbortController();
     this.#abort = controller;
     this.busy.set(true);
+    if (this.phase() === 'describe') this.creating.set(true);
     const id = this.#nextId++;
     this.#push({ id, from: 'assistant', text: '', source: this.#send(id, prompt, files, controller.signal) });
   }
@@ -537,6 +600,7 @@ export class AiAssisted {
       case 'describe': {
         const description = [prompt, ...docs.map((d) => d.text)].filter((t) => t.trim()).join('\n\n').trim();
         if (description.length < MIN_DESCRIPTION) {
+          this.creating.set(false);
           return {
             text:
               unreadableNote +

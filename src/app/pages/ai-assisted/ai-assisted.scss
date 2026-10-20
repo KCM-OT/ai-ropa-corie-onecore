@@ -389,3 +389,56 @@ blockquote {
   flex-direction: column;
   gap: var(--oc-spacing-2);
 }
+
+// Skeletons: the whole record while the first draft is created, then one
+// block at a time while its value changes. OneCore skeletons take their size
+// from the usage site.
+oc-skeleton {
+  display: block;
+}
+
+.sk-label {
+  width: 40%;
+  height: var(--oc-font-size-xs);
+}
+
+.sk-line {
+  width: 100%;
+  height: var(--oc-font-size-sm);
+
+  &.short {
+    width: 60%;
+  }
+}
+
+.sk-heading {
+  width: 25%;
+  height: var(--oc-font-size-md);
+  margin: var(--oc-spacing-5) 0 var(--oc-spacing-3);
+}
+
+.sk-bar {
+  width: 100%;
+  height: var(--oc-spacing-1);
+}
+
+.creating .basics > div,
+.sk-field,
+.sk-value {
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-spacing-2);
+}
+
+.sk-value {
+  margin-top: var(--oc-spacing-2);
+}
+
+.basics dd.updating {
+  padding-top: var(--oc-spacing-1);
+}
+
+// The block being updated.
+.fields li.updating {
+  border-left-color: var(--oc-motion-state-active);
+}

@@ -217,12 +217,14 @@
   </oc-assistant-thread>
 
   <!-- Live draft, checked with the ropa-authoring skill -->
-  <aside class="draft" aria-labelledby="draft-title">
+  <aside class="draft" aria-labelledby="draft-title" [attr.aria-busy]="creating() || updating().size > 0">
     <div class="draft-scroll">
       <div class="draft-head">
         <h2 id="draft-title">Draft record</h2>
         @if (sent()) {
           <oc-badge size="sm" color="success">Sent</oc-badge>
+        } @else if (creating()) {
+          <oc-badge size="sm" color="purple">Creating</oc-badge>
         } @else {
           @switch (phase()) {
             @case ('describe') {
@@ -238,192 +240,235 @@
         }
       </div>
 
-      <dl class="basics">
-        <div>
-          <dt>Record name</dt>
-          <dd [class.missing]="!name().trim()">{{ name().trim() || 'Not set yet' }}</dd>
-        </div>
-        <div>
-          <dt>Owning entity</dt>
-          <dd [class.missing]="!subsidiaryId()">
-            {{ report().owningEntity?.path || 'Not set yet' }}
-          </dd>
-        </div>
-        <div>
-          <dt>Role</dt>
-          @if (phase() === 'describe' || phase() === 'details') {
-            <dd class="missing">Not set yet</dd>
-          } @else {
-            <dd>
-              {{ report().roleLabel }} <span class="sub">· {{ report().roleDetail }}</span>
-            </dd>
-          }
-        </div>
-        @if (sourceFile(); as file) {
-          <div>
-            <dt>Source</dt>
-            <dd>{{ file }}</dd>
-          </div>
-        }
-      </dl>
-
-      <div class="score">
-        <div class="score-row">
-          <span
-            >Completeness
-            <span class="sub">{{
-              role() === 'processor' ? 'Art. 30(2), 7 items' : 'Art. 30(1), 13 items'
-            }}</span></span
-          >
-          <strong>{{ started() ? report().completeness : 0 }}%</strong>
-        </div>
-        <oc-progress
-          size="sm"
-          label="Record completeness"
-          [value]="started() ? report().completeness : 0"
-          [variant]="report().incomplete ? 'warning' : 'success'"
-        />
-        @if (started() && report().incomplete) {
-          <p class="sub">Below 80%: the dashboard flags the record as incomplete.</p>
-        }
-      </div>
-
-      @if (!started()) {
-        <p class="empty">
-          The draft fills in as you describe the activity. Every value quotes the text it came from,
-          and the ropa-authoring skill's checks run as it changes.
-        </p>
-      } @else {
-        <h3>Fields</h3>
-        <ul class="fields">
-          @for (f of fieldRows(); track f.key) {
-            <li [class.asking]="f.asking" [class.gap]="!f.filled">
-              <div class="field-head">
-                <span class="field-label">{{ f.label }}</span>
-                @if (f.asking) {
-                  <oc-badge size="sm" color="purple">Asking now</oc-badge>
-                } @else if (f.filled && f.meta?.provenance === 'user') {
-                  <oc-badge size="sm" color="blue">From you</oc-badge>
-                } @else if (f.band) {
-                  <oc-status
-                    size="sm"
-                    [intent]="bandIntent[f.band]"
-                    [label]="f.band"
-                    intentLabel="confidence"
-                  />
-                }
+      @if (creating()) {
+        <p class="visually-hidden" role="status">Creating the draft record</p>
+        <div class="creating" aria-hidden="true">
+          <div class="basics">
+            @for (b of [1, 2, 3]; track b) {
+              <div>
+                <oc-skeleton class="sk-label" />
+                <oc-skeleton class="sk-line" />
               </div>
-              @if (f.filled) {
-                <p
-                  class="field-value"
-                  [class.clamp]="f.key === 'description'"
-                  [title]="f.key === 'description' ? f.value : null"
-                >
-                  {{ f.value }}
-                </p>
-                @if (f.meta && f.meta.provenance === 'ai') {
-                  <blockquote>“{{ f.meta.evidence }}”</blockquote>
-                }
-              } @else if (f.skipped) {
-                <p class="field-value missing">Skipped. Left for the reviewer.</p>
-              } @else {
-                <p class="field-value missing">Missing</p>
-              }
-            </li>
-          }
-        </ul>
-
-        <h3>
-          {{ role() === 'processor' ? 'Sub-processors, systems and data' : 'Linked inventory' }}
-        </h3>
-        @if (relationshipRows().length === 0) {
-          <p class="empty">No vendors, systems or data categories named yet.</p>
-        } @else {
-          <div class="links" role="list" aria-label="Linked inventory">
-            @for (r of relationshipRows(); track r.type + r.name) {
-              <oc-tag
-                role="listitem"
-                size="sm"
-                removable
-                [color]="
-                  r.special
-                    ? 'red'
-                    : r.type === 'personalData'
-                      ? 'purple'
-                      : r.type === 'vendor'
-                        ? 'blue'
-                        : 'teal'
-                "
-                [removeLabel]="'Remove ' + r.name"
-                [title]="
-                  relationshipLabel[r.type] +
-                  (r.resolved ? '' : ' (not in your inventory)') +
-                  ': ' +
-                  r.rationale
-                "
-                (remove)="rejectRelationship(r)"
-              >
-                {{ r.name }}{{ r.special ? ' · Art. 9' : ''
-                }}{{ r.resolved ? '' : ' · not in inventory' }}
-              </oc-tag>
             }
           </div>
-        }
-
-        <div class="split">
-          <section aria-labelledby="checks-title">
-            <h3 id="checks-title">Checks</h3>
-            @if (checkRows().length === 0) {
-              <p class="empty">No warnings.</p>
+          <div class="score">
+            <oc-skeleton class="sk-line" />
+            <oc-skeleton class="sk-bar" />
+          </div>
+          <oc-skeleton class="sk-heading" />
+          <div class="fields">
+            @for (b of [1, 2, 3, 4, 5, 6]; track b) {
+              <div class="sk-field">
+                <oc-skeleton class="sk-label" />
+                <oc-skeleton class="sk-line" />
+                <oc-skeleton class="sk-line short" />
+              </div>
+            }
+          </div>
+        </div>
+      } @else {
+        <dl class="basics">
+          <div>
+            <dt>Record name</dt>
+            @if (isUpdating('basic:name')) {
+              <dd class="updating"><oc-skeleton class="sk-line" /></dd>
             } @else {
-              <ul class="checks">
-                @for (c of checkRows(); track c.field + c.issue) {
+              <dd [class.missing]="!name().trim()">{{ name().trim() || 'Not set yet' }}</dd>
+            }
+          </div>
+          <div>
+            <dt>Owning entity</dt>
+            @if (isUpdating('basic:entity')) {
+              <dd class="updating"><oc-skeleton class="sk-line" /></dd>
+            } @else {
+              <dd [class.missing]="!subsidiaryId()">
+                {{ report().owningEntity?.path || 'Not set yet' }}
+              </dd>
+            }
+          </div>
+          <div>
+            <dt>Role</dt>
+            @if (isUpdating('basic:role')) {
+              <dd class="updating"><oc-skeleton class="sk-line" /></dd>
+            } @else if (phase() === 'describe' || phase() === 'details') {
+              <dd class="missing">Not set yet</dd>
+            } @else {
+              <dd>
+                {{ report().roleLabel }} <span class="sub">· {{ report().roleDetail }}</span>
+              </dd>
+            }
+          </div>
+          @if (sourceFile(); as file) {
+            <div>
+              <dt>Source</dt>
+              <dd>{{ file }}</dd>
+            </div>
+          }
+        </dl>
+
+        <div class="score">
+          <div class="score-row">
+            <span
+              >Completeness
+              <span class="sub">{{
+                role() === 'processor' ? 'Art. 30(2), 7 items' : 'Art. 30(1), 13 items'
+              }}</span></span
+            >
+            <strong>{{ started() ? report().completeness : 0 }}%</strong>
+          </div>
+          <oc-progress
+            size="sm"
+            label="Record completeness"
+            [value]="started() ? report().completeness : 0"
+            [variant]="report().incomplete ? 'warning' : 'success'"
+          />
+          @if (started() && report().incomplete) {
+            <p class="sub">Below 80%: the dashboard flags the record as incomplete.</p>
+          }
+        </div>
+
+        @if (!started()) {
+          <p class="empty">
+            The draft fills in as you describe the activity. Every value quotes the text it came from,
+            and the ropa-authoring skill's checks run as it changes.
+          </p>
+        } @else {
+          <h3>Fields</h3>
+          <ul class="fields">
+            @for (f of fieldRows(); track f.key) {
+              <li [class.asking]="f.asking" [class.gap]="!f.filled" [class.updating]="isUpdating(f.key)">
+                <div class="field-head">
+                  <span class="field-label">{{ f.label }}</span>
+                  @if (f.asking) {
+                    <oc-badge size="sm" color="purple">Asking now</oc-badge>
+                  } @else if (f.filled && f.meta?.provenance === 'user') {
+                    <oc-badge size="sm" color="blue">From you</oc-badge>
+                  } @else if (f.band) {
+                    <oc-status
+                      size="sm"
+                      [intent]="bandIntent[f.band]"
+                      [label]="f.band"
+                      intentLabel="confidence"
+                    />
+                  }
+                </div>
+                @if (isUpdating(f.key)) {
+                  <div class="sk-value" aria-hidden="true">
+                    <oc-skeleton class="sk-line" />
+                    <oc-skeleton class="sk-line short" />
+                  </div>
+                } @else if (f.filled) {
+                  <p
+                    class="field-value"
+                    [class.clamp]="f.key === 'description'"
+                    [title]="f.key === 'description' ? f.value : null"
+                  >
+                    {{ f.value }}
+                  </p>
+                  @if (f.meta && f.meta.provenance === 'ai') {
+                    <blockquote>“{{ f.meta.evidence }}”</blockquote>
+                  }
+                } @else if (f.skipped) {
+                  <p class="field-value missing">Skipped. Left for the reviewer.</p>
+                } @else {
+                  <p class="field-value missing">Missing</p>
+                }
+              </li>
+            }
+          </ul>
+
+          <h3>
+            {{ role() === 'processor' ? 'Sub-processors, systems and data' : 'Linked inventory' }}
+          </h3>
+          @if (relationshipRows().length === 0) {
+            <p class="empty">No vendors, systems or data categories named yet.</p>
+          } @else {
+            <div class="links" role="list" aria-label="Linked inventory">
+              @for (r of relationshipRows(); track r.type + r.name) {
+                <oc-tag
+                  role="listitem"
+                  size="sm"
+                  removable
+                  [color]="
+                    r.special
+                      ? 'red'
+                      : r.type === 'personalData'
+                        ? 'purple'
+                        : r.type === 'vendor'
+                          ? 'blue'
+                          : 'teal'
+                  "
+                  [removeLabel]="'Remove ' + r.name"
+                  [title]="
+                    relationshipLabel[r.type] +
+                    (r.resolved ? '' : ' (not in your inventory)') +
+                    ': ' +
+                    r.rationale
+                  "
+                  (remove)="rejectRelationship(r)"
+                >
+                  {{ r.name }}{{ r.special ? ' · Art. 9' : ''
+                  }}{{ r.resolved ? '' : ' · not in inventory' }}
+                </oc-tag>
+              }
+            </div>
+          }
+
+          <div class="split">
+            <section aria-labelledby="checks-title">
+              <h3 id="checks-title">Checks</h3>
+              @if (checkRows().length === 0) {
+                <p class="empty">No warnings.</p>
+              } @else {
+                <ul class="checks">
+                  @for (c of checkRows(); track c.field + c.issue) {
+                    <li>
+                      <oc-badge size="sm" [color]="severityColor[c.severity]">{{
+                        severityLabel[c.severity]
+                      }}</oc-badge>
+                      <p>{{ c.issue }}</p>
+                      @if (c.answer) {
+                        <p class="answer">Your answer: {{ c.answer }}</p>
+                      }
+                    </li>
+                  }
+                </ul>
+              }
+            </section>
+            <section aria-labelledby="posture-title">
+              <h3 id="posture-title">Posture</h3>
+              @if (report().posture.activeConditions.length) {
+                <div class="links" role="list" aria-label="Risk conditions">
+                  @for (c of report().posture.activeConditions; track c) {
+                    <oc-tag role="listitem" size="sm">{{ c }}</oc-tag>
+                  }
+                </div>
+              }
+              <ul class="assessments">
+                @for (a of report().posture.requiredAssessments; track a.type) {
                   <li>
-                    <oc-badge size="sm" [color]="severityColor[c.severity]">{{
-                      severityLabel[c.severity]
-                    }}</oc-badge>
-                    <p>{{ c.issue }}</p>
-                    @if (c.answer) {
-                      <p class="answer">Your answer: {{ c.answer }}</p>
+                    <span class="field-label">{{ a.name }}</span>
+                    <span class="sub">Triggered by {{ a.triggeredBy.join(', ').toLowerCase() }}</span>
+                    @if (a.owner) {
+                      <span class="sub">Owner: {{ a.owner }}</span>
                     }
                   </li>
+                } @empty {
+                  <li class="sub">No assessments required.</li>
                 }
               </ul>
-            }
-          </section>
-          <section aria-labelledby="posture-title">
-            <h3 id="posture-title">Posture</h3>
-            @if (report().posture.activeConditions.length) {
-              <div class="links" role="list" aria-label="Risk conditions">
-                @for (c of report().posture.activeConditions; track c) {
-                  <oc-tag role="listitem" size="sm">{{ c }}</oc-tag>
-                }
-              </div>
-            }
-            <ul class="assessments">
-              @for (a of report().posture.requiredAssessments; track a.type) {
-                <li>
-                  <span class="field-label">{{ a.name }}</span>
-                  <span class="sub">Triggered by {{ a.triggeredBy.join(', ').toLowerCase() }}</span>
-                  @if (a.owner) {
-                    <span class="sub">Owner: {{ a.owner }}</span>
-                  }
-                </li>
-              } @empty {
-                <li class="sub">No assessments required.</li>
-              }
-            </ul>
-            <p class="cadence">
-              <strong>Review {{ report().posture.reviewCadence.label.toLowerCase() }}</strong>
-              <span class="sub">
-                {{ report().posture.reviewCadence.rule
-                }}{{
-                  report().posture.requireCertification ? ', certification at each review' : ''
-                }}
-              </span>
-            </p>
-          </section>
-        </div>
+              <p class="cadence">
+                <strong>Review {{ report().posture.reviewCadence.label.toLowerCase() }}</strong>
+                <span class="sub">
+                  {{ report().posture.reviewCadence.rule
+                  }}{{
+                    report().posture.requireCertification ? ', certification at each review' : ''
+                  }}
+                </span>
+              </p>
+            </section>
+          </div>
+        }
       }
     </div>
 

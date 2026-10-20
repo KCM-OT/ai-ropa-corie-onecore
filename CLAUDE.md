@@ -35,6 +35,8 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
   Replies are written in the component and streamed with `[ocStream]` through one `send()`; there's
   no model. OneCore only shows Edit on a user turn that is the newest message, so Stop drops the
   partial reply to make the message editable.
+  The draft panel shows an `oc-skeleton` of the whole record while the first reply builds it, then
+  a skeleton on any block (name, entity, role, field) whose value changes, for `UPDATE_MS`.
 - **Send to Pending inventory** hands the RoPA to the Data Mapping prototype (KCM-OT/ai-ropa-datamapping,
   https://ai-ropa-datamapping-sigma.vercel.app). `data/handoff.ts` packages it as JSON
   (`format: "onetrust.ropa-handoff"`, version 1: the record in the skill's shape with full evidence,
