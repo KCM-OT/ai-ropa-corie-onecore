@@ -37,6 +37,18 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
   partial reply to make the message editable.
   The draft panel shows an `oc-skeleton` of the whole record while the first reply builds it, then
   a skeleton on any block (name, entity, role, field) whose value changes, for `UPDATE_MS`.
+- **Duplicate check** (`data/duplicates.ts`): after the description, an attached document, or a record
+  picked from Processing activities (row menu → Create variation with AI, `?from=<id>`), the draft is
+  compared with the records the user can view (`canView`: every company except APAC in this
+  prototype). A likely duplicate shows in OneCore's caution yellow: the matched record, a rationale and
+  the overlapping fields in the panel, and a card in the conversation with Use existing record,
+  Create as local variation with inheritance, or Dismiss duplicate flag. Nothing is created, linked or
+  inherited until the user confirms. A variation inherits the parent's fields it doesn't set itself
+  (provenance `inherited`); the decision travels in the handoff as `duplicateCheck`. Record content
+  for the mock list lives in `RECORD_PROFILES`.
+- **Samples** (`data/demo-samples.ts`): each sample chip picks one of three variants at random, each
+  written to overlap a different existing record (a previous RoPA record, a shared vendor, or the same
+  data subjects). `npm run skill:parity` covers every variant.
 - **Send to Pending inventory** hands the RoPA to the Data Mapping prototype (KCM-OT/ai-ropa-datamapping,
   https://ai-ropa-datamapping-sigma.vercel.app). `data/handoff.ts` packages it as JSON
   (`format: "onetrust.ropa-handoff"`, version 1: the record in the skill's shape with full evidence,

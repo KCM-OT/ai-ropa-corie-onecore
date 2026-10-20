@@ -16,7 +16,8 @@ export const ROLE_HELP: Record<ProcessingRole, string> = {
 };
 
 export interface FieldMeta {
-  provenance: 'ai' | 'user';
+  /** 'inherited': copied from the parent record of a local variation. */
+  provenance: 'ai' | 'user' | 'inherited';
   confidence: number; // 0–1
   evidence: string; // verbatim quote from the source
   rationale: string;

@@ -26,11 +26,12 @@ const entry = path.join(tmp, 'entry.ts');
 writeFileSync(
   entry,
   `export { runRopaChecks } from ${JSON.stringify(path.join(root, 'src/app/data/ropa-check.ts'))};\n` +
-    `export { draftRecord, SAMPLES } from ${JSON.stringify(path.join(root, 'src/app/data/skill-draft.ts'))};\n`,
+    `export { draftRecord, SAMPLES } from ${JSON.stringify(path.join(root, 'src/app/data/skill-draft.ts'))};\n` +
+    `export { DEMO_SAMPLES } from ${JSON.stringify(path.join(root, 'src/app/data/demo-samples.ts'))};\n`,
 );
 const bundle = path.join(tmp, 'bundle.mjs');
 await build({ entryPoints: [entry], bundle: true, platform: 'node', format: 'esm', outfile: bundle, logLevel: 'error' });
-const { runRopaChecks, draftRecord, SAMPLES } = await import(pathToFileURL(bundle).href);
+const { runRopaChecks, draftRecord, SAMPLES, DEMO_SAMPLES } = await import(pathToFileURL(bundle).href);
 
 // ---- cases ----
 
@@ -60,7 +61,8 @@ cases.push(
   { label: 'edge: AI and monitoring keywords', record: { ...controller, purpose: 'Profiling and behavioural tracking of all users' } },
   { label: 'duplicate check', record: controller, existing: [{ ...controller, id: 'pa-1', name: 'AI candidate screening' }, processor] },
 );
-for (const s of SAMPLES) {
+// The AI Assisted page's sample variants; the first of each scenario is already in SAMPLES.
+for (const s of [...SAMPLES, ...DEMO_SAMPLES.filter((d) => !SAMPLES.some((x) => x.text === d.text))]) {
   for (const role of ['controller', 'joint_controller', 'processor']) {
     cases.push({ label: `app draft: ${s.label} as ${role}`, record: draftRecord(s.text, { role, subsidiaryId: 'sub-uk', name: s.label }) });
   }

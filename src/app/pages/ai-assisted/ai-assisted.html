@@ -144,9 +144,67 @@
           </ng-template>
         </oc-assistant-steps>
       </div>
+    } @else if (duplicateOpen() && duplicate(); as m) {
+      <!-- The duplicate decision replaces the composer until it's confirmed or hidden. -->
+      <section class="dup-card" #duplicateCard tabindex="-1" aria-labelledby="dup-card-title">
+        <div class="dup-card-head">
+          <oc-icon name="triangle-exclamation" />
+          <h3 id="dup-card-title">Likely duplicate</h3>
+          <oc-badge size="sm" color="warning">{{ m.strength }}</oc-badge>
+          <button
+            oc-icon-button
+            class="dup-hide"
+            variant="tertiary"
+            size="sm"
+            label="Hide the duplicate decision"
+            (click)="closeDuplicate()"
+          >
+            <oc-icon name="xmark" />
+          </button>
+        </div>
+        <p class="dup-record">
+          <strong>{{ m.record.name }}</strong>
+          <span class="sub"
+            >#{{ m.record.id }} · {{ roleLabels[m.record.role] }} ·
+            {{ subsidiaryLabel(m.record.subsidiaryId) }}</span
+          >
+        </p>
+        <oc-radio-group
+          aria-label="What to do about the likely duplicate"
+          orientation="vertical"
+          [ngModel]="duplicateChoice()"
+          (ngModelChange)="duplicateChoice.set($event)"
+        >
+          @for (a of duplicateActions; track a.value) {
+            <button oc-radio-item [value]="a.value">{{ a.label }}</button>
+          }
+        </oc-radio-group>
+        @if (selectedDuplicateAction(); as a) {
+          <p class="step-help">{{ a.help }} {{ a.confirm }}</p>
+        } @else {
+          <p class="step-help">Pick one. Nothing is created, linked or inherited until you confirm.</p>
+        }
+        <div class="step-actions">
+          <button
+            oc-button
+            variant="primary"
+            size="sm"
+            [disabled]="!duplicateChoice() || busy()"
+            (click)="confirmDuplicate()"
+          >
+            Confirm
+          </button>
+        </div>
+      </section>
     } @else {
-      @if (suggestions().length || (phase() === 'details' && !busy())) {
+      @if (suggestions().length || (phase() === 'details' && !busy()) || (phase() === 'duplicate' && !busy())) {
         <div class="suggestions" role="group" aria-label="Suggestions">
+          @if (phase() === 'duplicate' && !busy()) {
+            <button oc-button variant="secondary" size="sm" (click)="openDuplicate()">
+              <oc-icon slot="leading" name="triangle-exclamation" />
+              Review likely duplicate
+            </button>
+          }
           @if (phase() === 'details' && !busy()) {
             <button oc-button variant="secondary" size="sm" (click)="openChain()">
               <oc-icon slot="leading" name="ai-sparkles" />
@@ -230,6 +288,12 @@
             @case ('describe') {
               <oc-badge size="sm">Not started</oc-badge>
             }
+            @case ('duplicate') {
+              <oc-badge size="sm" color="warning">Possible duplicate</oc-badge>
+            }
+            @case ('existing') {
+              <oc-badge size="sm">Not created</oc-badge>
+            }
             @case ('ready') {
               <oc-badge size="sm" color="success">Ready to send</oc-badge>
             }
@@ -267,6 +331,53 @@
           </div>
         </div>
       } @else {
+        @if (duplicate(); as m) {
+          @if (phase() === 'duplicate') {
+            <section class="dup-flag" aria-labelledby="dup-flag-title">
+              <div class="dup-flag-head">
+                <oc-icon name="triangle-exclamation" />
+                <h3 id="dup-flag-title">
+                  Likely duplicate of {{ m.record.name }} (#{{ m.record.id }})
+                </h3>
+              </div>
+              <p>{{ m.rationale }}</p>
+              <table class="dup-overlaps">
+                <caption class="visually-hidden">
+                  Fields that overlap with {{ m.record.name }}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Overlapping field</th>
+                    <th scope="col">This draft</th>
+                    <th scope="col">{{ m.record.name }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (o of m.overlaps; track o.label) {
+                    <tr>
+                      <th scope="row">{{ o.label }}</th>
+                      <td>{{ o.draft }}</td>
+                      <td>{{ o.existing }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+              <p class="sub">
+                Checked against the {{ m.checked }} processing activities you can view. Nothing is
+                created, linked or inherited until you confirm a choice in the conversation.
+              </p>
+            </section>
+          } @else if (phase() === 'existing') {
+            <oc-alert
+              class="dup-resolved"
+              intent="info"
+              size="sm"
+              [dismissible]="false"
+              [title]="'Using ' + m.record.name + ' (#' + m.record.id + ')'"
+              description="No new record was created. This draft is kept here for reference only."
+            />
+          }
+        }
         <dl class="basics">
           <div>
             <dt>Record name</dt>
@@ -298,7 +409,22 @@
               </dd>
             }
           </div>
-          @if (sourceFile(); as file) {
+          @if (duplicateDecision(); as d) {
+          @if (d.action !== 'use') {
+            <div>
+              <dt>{{ d.action === 'variation' ? 'Local variation of' : 'Duplicate check' }}</dt>
+              <dd class="linked">
+                @if (d.action === 'variation') {
+                  <oc-icon name="code-branch" size="sm" />
+                  {{ d.record.name }} <span class="sub">#{{ d.record.id }}</span>
+                } @else {
+                  Not a duplicate of {{ d.record.name }} <span class="sub">#{{ d.record.id }}</span>
+                }
+              </dd>
+            </div>
+          }
+        }
+        @if (sourceFile(); as file) {
             <div>
               <dt>Source</dt>
               <dd>{{ file }}</dd>
@@ -343,6 +469,8 @@
                     <oc-badge size="sm" color="purple">Asking now</oc-badge>
                   } @else if (f.filled && f.meta?.provenance === 'user') {
                     <oc-badge size="sm" color="blue">From you</oc-badge>
+                  } @else if (f.filled && f.meta?.provenance === 'inherited') {
+                    <oc-badge size="sm" color="teal" [title]="f.meta?.rationale">Inherited</oc-badge>
                   } @else if (f.band) {
                     <oc-status
                       size="sm"
@@ -509,6 +637,14 @@
             Download JSON
           </a>
         </div>
+      } @else if (phase() === 'existing' && duplicateDecision(); as d) {
+        <a oc-button variant="secondary" routerLink="/processing-activities">
+          Open Processing activities
+        </a>
+        <p>
+          Nothing was sent. {{ d.record.name }} (#{{ d.record.id }}) stays the record of this
+          activity.
+        </p>
       } @else {
         <button oc-button variant="primary" [disabled]="!canSubmit()" [ocDialogTrigger]="confirmSend">
           Send to Pending inventory

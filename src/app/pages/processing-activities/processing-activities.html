@@ -143,6 +143,9 @@
             <ng-template #rowMenu>
               <oc-menu>
                 <button oc-menu-item>Start re-certification</button>
+                <button oc-menu-item (click)="router.navigate(['/ai-assisted-ropa'], { queryParams: { from: r.id } })">
+                  Create variation with AI
+                </button>
                 <button oc-menu-item>Duplicate</button>
                 <oc-menu-separator />
                 <button oc-menu-item variant="destructive">Archive</button>

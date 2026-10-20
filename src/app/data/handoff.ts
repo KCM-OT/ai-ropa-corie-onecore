@@ -44,6 +44,15 @@ export interface RopaHandoff {
   };
   /** Answers recorded against checks that can't clear on their own (Art. 9 condition, Art. 22, Art. 28). */
   notes: Record<string, string>;
+  /** The likely duplicate found before the record was created, and what the user confirmed. */
+  duplicateCheck?: DuplicateCheck;
+}
+
+export interface DuplicateCheck {
+  matched: { id: number; name: string; score: number; rationale: string };
+  decision: 'variation' | 'dismiss' | 'use';
+  /** For a local variation: the fields inherited from the matched record. */
+  inheritedFields: string[];
 }
 
 export function buildHandoff(input: {
@@ -53,6 +62,7 @@ export function buildHandoff(input: {
   relationships: Relationship[];
   notes: Record<string, string>;
   submittedBy: string;
+  duplicateCheck?: DuplicateCheck;
 }): RopaHandoff {
   const { record, report } = input;
   // Carry full evidence and rationale, not just the confidence the checker reads.
@@ -85,6 +95,7 @@ export function buildHandoff(input: {
       reviewCadence: report.posture.reviewCadence.label,
     },
     notes: input.notes,
+    ...(input.duplicateCheck ? { duplicateCheck: input.duplicateCheck } : {}),
   };
 }
 

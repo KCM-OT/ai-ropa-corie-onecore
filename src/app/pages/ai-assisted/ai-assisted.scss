@@ -442,3 +442,107 @@ oc-skeleton {
 .fields li.updating {
   border-left-color: var(--oc-motion-state-active);
 }
+
+// Likely duplicate: OneCore's caution yellow. The card in the conversation
+// holds the decision; the panel shows the matched record and the overlap.
+.dup-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-spacing-3);
+  margin: 0 var(--oc-spacing-4) var(--oc-spacing-4);
+  padding: var(--oc-spacing-4);
+  border: var(--oc-container-border-width) solid var(--oc-supportive-yellow);
+  border-radius: var(--oc-containers-radius-level-2);
+  background: var(--oc-background);
+
+  &:focus-visible {
+    outline: 2px solid var(--oc-ring);
+    outline-offset: 2px;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: var(--oc-font-size-sm);
+  }
+}
+
+.dup-card-head,
+.dup-flag-head {
+  display: flex;
+  align-items: center;
+  gap: var(--oc-spacing-2);
+
+  > oc-icon {
+    color: var(--oc-supportive-yellow);
+  }
+}
+
+.dup-hide {
+  margin-inline-start: auto;
+}
+
+.dup-record {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: var(--oc-font-size-sm);
+}
+
+.dup-flag {
+  margin-top: var(--oc-spacing-5);
+  padding: var(--oc-spacing-4);
+  border-inline-start: 3px solid var(--oc-supportive-yellow);
+  border-radius: var(--oc-containers-radius-level-2);
+  background: var(--oc-supportive-yellow-light);
+  color: var(--oc-supportive-yellow-on);
+  font-size: var(--oc-font-size-sm);
+  line-height: var(--oc-line-height-relaxed);
+
+  h3 {
+    margin: 0;
+    font-size: var(--oc-font-size-md);
+  }
+
+  p {
+    margin: var(--oc-spacing-2) 0;
+  }
+
+  .sub {
+    color: inherit;
+    opacity: 0.8;
+  }
+}
+
+.dup-overlaps {
+  width: 100%;
+  margin: var(--oc-spacing-3) 0;
+  border-collapse: collapse;
+  font-size: var(--oc-font-size-xs);
+
+  th,
+  td {
+    padding: var(--oc-spacing-2);
+    border-bottom: var(--oc-container-border-width) solid var(--oc-supportive-yellow);
+    text-align: start;
+    vertical-align: top;
+  }
+
+  thead th {
+    font-weight: var(--oc-font-weight-emphasis);
+  }
+
+  tbody th {
+    font-weight: var(--oc-font-weight-emphasis);
+    white-space: nowrap;
+  }
+}
+
+.dup-resolved {
+  margin-top: var(--oc-spacing-5);
+}
+
+.basics dd.linked {
+  display: flex;
+  align-items: center;
+  gap: var(--oc-spacing-1);
+}

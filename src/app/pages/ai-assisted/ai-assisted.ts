@@ -59,13 +59,23 @@ import { buildHandoff, handoffFileName, handoffUrl } from '../../data/handoff';
 import { initials, SIGNED_IN_USER, SUBSIDIARIES, subsidiaryName } from '../../data/org';
 import { PROCESSING_ACTIVITIES } from '../../data/processing-activities';
 import { runRopaChecks, type CheckRecord, type CheckSeverity, type RopaCheckReport } from '../../data/ropa-check';
+import { ActivatedRoute } from '@angular/router';
+import { pickVariant, SCENARIOS } from '../../data/demo-samples';
+import {
+  canView,
+  describeProfile,
+  draftProfile,
+  findDuplicate,
+  inheritable,
+  profile,
+  type DuplicateMatch,
+} from '../../data/duplicates';
 import {
   extractForSkill,
   INVENTORY,
-  JOINT_SAMPLE,
   parseParties,
   POSTURE,
-  PROCESSOR_SAMPLE,
+  recordKeys,
   splitList,
   toCheckRecord,
   type Extraction,
@@ -80,7 +90,6 @@ import {
   SKIP_CHIP,
   type Question,
 } from '../../data/skill-questions';
-import { SAMPLE_DESCRIPTION } from '../../data/extract';
 import { ROLE_HELP, ROLE_LABELS, type DraftField, type FieldMeta, type ProcessingRole, type Relationship } from '../../data/types';
 import { PageHeader } from '../../shell/page-header';
 
@@ -92,6 +101,10 @@ import { PageHeader } from '../../shell/page-header';
 //   2. Role and owning entity    → phase 'details': an oc-assistant-steps chain for the
 //                                  name, the owning entity and the role, pre-selecting
 //                                  the role the description's cues point to
+//      Duplicate check        → phase 'duplicate': before anything is created, compare the
+//                                  draft with the records the user can view (duplicates.ts);
+//                                  the user picks Use existing record ('existing', the end),
+//                                  Create as local variation, or Dismiss, and confirms it
 //   3. Extract a draft           → skill-draft.ts: values, confidence, verbatim evidence,
 //                                  relationships, in the skill's JSON shape for the role
 //   4. Run the checks            → ropa-check.ts, a parity-tested port of ropa_check.py,
@@ -105,7 +118,7 @@ import { PageHeader } from '../../shell/page-header';
 // Every reply goes through one send() (OneCore rule AST-01). No model is
 // connected: the reply text is written here and streamed word by word.
 
-type Phase = 'describe' | 'details' | 'closing' | 'ready';
+type Phase = 'describe' | 'duplicate' | 'existing' | 'details' | 'closing' | 'ready';
 type Value = string | string[] | Party[];
 
 interface Turn {
@@ -136,7 +149,38 @@ interface Snapshot {
   subsidiaryId: string | null;
   role: ProcessingRole;
   roleCue: Extraction['roleCue'];
+  duplicate: DuplicateMatch | null;
+  duplicateDecision: DuplicateDecision | null;
 }
+
+/** What the user does about a likely duplicate (user story: structured actions, confirmed first). */
+type DuplicateAction = 'use' | 'variation' | 'dismiss';
+
+interface DuplicateDecision {
+  action: DuplicateAction;
+  record: { id: number; name: string };
+}
+
+const DUPLICATE_ACTIONS: { value: DuplicateAction; label: string; help: string; confirm: string }[] = [
+  {
+    value: 'use',
+    label: 'Use existing record',
+    help: "Don't create a new record. The existing one stays the record of this activity.",
+    confirm: 'No new record is created, and this draft is discarded.',
+  },
+  {
+    value: 'variation',
+    label: 'Create as local variation with inheritance',
+    help: 'Create a new record linked to the existing one. It inherits the shared fields; your values stay local.',
+    confirm: 'A new record is drafted, linked to the existing one, inheriting the fields it doesn’t set itself.',
+  },
+  {
+    value: 'dismiss',
+    label: 'Dismiss duplicate flag',
+    help: "It's a different activity. Carry on with a new record; the dismissal is noted for the reviewer.",
+    confirm: 'A new, unlinked record is drafted, and the dismissed flag is noted for the reviewer.',
+  },
+];
 
 interface Reply {
   text: string;
@@ -150,19 +194,16 @@ interface Suggestion {
   fill: boolean;
 }
 
-const SAMPLE_CHIPS: Record<string, { text: string; name: string }> = {
-  'Sample: candidate screening (controller)': { text: SAMPLE_DESCRIPTION, name: 'Candidate screening' },
-  'Sample: client payroll (processor)': { text: PROCESSOR_SAMPLE, name: 'Client payroll' },
-  'Sample: group HR system (joint controller)': { text: JOINT_SAMPLE, name: 'Group HR information system' },
-};
 const STARTERS: Suggestion[] = [
-  ...Object.keys(SAMPLE_CHIPS).map((text) => ({ text, fill: false })),
+  // Each sample picks one of its variants at random, each overlapping a different existing record.
+  ...SCENARIOS.map((s) => ({ text: s.chip, fill: false })),
   {
     text: 'Our [team] collects [data] from [people] to [purpose], using [tools], and keeps it for [time].',
     fill: true,
   },
 ];
 
+const START_OVER_CHIP = 'Start a new record';
 const THINKING_MS = 900;
 /** How long a changed field shows its skeleton before the new value appears. */
 const UPDATE_MS = 1100;
@@ -199,6 +240,10 @@ function display(value: unknown): string {
 
 function plural(n: number, one: string, many = `${one}s`): string {
   return `${n} ${n === 1 ? one : many}`;
+}
+
+function listText(items: string[]): string {
+  return items.length <= 2 ? items.join(' and ') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
 }
 
 @Component({
@@ -253,6 +298,7 @@ function plural(n: number, one: string, many = `${one}s`): string {
 export class AiAssisted {
   readonly #drafts = inject(DraftsStore);
   readonly #injector = inject(Injector);
+  readonly #route = inject(ActivatedRoute);
 
   private readonly promptInput = viewChild('prompt', { read: ElementRef });
   private readonly steps = viewChild(OcAssistantSteps);
@@ -269,6 +315,7 @@ export class AiAssisted {
   protected readonly severityColor = SEVERITY_COLOR;
   protected readonly bandIntent = BAND_INTENT;
   protected readonly display = display;
+  protected readonly duplicateActions = DUPLICATE_ACTIONS;
 
   // ---- Conversation ----
   protected readonly turns = signal<Turn[]>([]);
@@ -279,6 +326,8 @@ export class AiAssisted {
   protected readonly chainStep = signal(0);
   #nextId = 1;
   #abort: AbortController | null = null;
+  /** The assistant turn now streaming a reply; other turns finishing (the greeting) don't end it. */
+  #replyId: number | null = null;
   readonly #after = new Map<number, () => void>();
   readonly #snapshots = new Map<number, Snapshot>();
 
@@ -304,6 +353,15 @@ export class AiAssisted {
   protected readonly subsidiaryId = signal<string | null>(null);
   protected readonly role = signal<ProcessingRole>('controller');
   protected readonly roleCue = signal<Extraction['roleCue']>(undefined);
+  /** The likely duplicate the check found, if any. */
+  protected readonly duplicate = signal<DuplicateMatch | null>(null);
+  /** The user's confirmed choice about it. Nothing is created, linked or inherited before this. */
+  protected readonly duplicateDecision = signal<DuplicateDecision | null>(null);
+  /** The option picked on the duplicate card, not yet confirmed. */
+  protected readonly duplicateChoice = signal<DuplicateAction | null>(null);
+  protected readonly duplicateOpen = signal(false);
+  /** The record the user started from (Processing activities → Create variation with AI), if any. */
+  #fromRecord: number | null = null;
 
   protected readonly started = computed(() => this.description().length > 0);
   /** The first reply is building the draft: the panel shows a skeleton of the record until it finishes. */
@@ -317,13 +375,34 @@ export class AiAssisted {
     this.started() ? extractForSkill([this.description(), ...this.extraNarrative()].join('\n\n')) : null,
   );
 
+  /** A confirmed local variation inherits its parent's fields for this role, wherever it has none of its own. */
+  protected readonly inherited = computed<Record<string, Value>>(() => {
+    const d = this.duplicateDecision();
+    const parent = d?.action === 'variation' ? profile(d.record.id) : undefined;
+    if (!parent) return {};
+    const keys = new Set(recordKeys(this.role()));
+    const own = { ...(this.extraction()?.values ?? {}), ...this.userValues() };
+    return Object.fromEntries(Object.entries(inheritable(parent)).filter(([k]) => keys.has(k) && own[k] === undefined));
+  });
+
   protected readonly values = computed<Record<string, Value>>(() => ({
+    ...this.inherited(),
     ...(this.extraction()?.values ?? {}),
     ...this.userValues(),
   }));
 
   protected readonly fieldMeta = computed<Record<string, FieldMeta>>(() => {
-    const out: Record<string, FieldMeta> = { ...(this.extraction()?.meta ?? {}) };
+    const parent = this.duplicateDecision()?.record;
+    const out: Record<string, FieldMeta> = {};
+    for (const [key, value] of Object.entries(this.inherited())) {
+      out[key] = {
+        provenance: 'inherited',
+        confidence: 1,
+        evidence: display(value),
+        rationale: `Inherited from ${parent?.name} (#${parent?.id}).`,
+      };
+    }
+    Object.assign(out, this.extraction()?.meta ?? {});
     for (const key of this.confirmed()) {
       if (out[key]) out[key] = { ...out[key], provenance: 'user', confidence: 1, rationale: `${out[key].rationale} Confirmed by you.` };
     }
@@ -360,6 +439,8 @@ export class AiAssisted {
   protected readonly questions = computed<Question[]>(() =>
     this.started()
       ? planQuestions({ role: this.role(), record: this.record(), report: this.report(), handled: new Set(this.handled()) })
+          // The structured duplicate check (duplicates.ts) has already settled duplicates.
+          .filter((q) => q.field !== 'duplicateDecision')
       : [],
   );
 
@@ -419,12 +500,18 @@ export class AiAssisted {
   });
 
   protected readonly canSubmit = computed(
-    () => this.started() && Boolean(this.name().trim()) && Boolean(this.subsidiaryId()) && !this.busy() && this.phase() !== 'describe',
+    () =>
+      this.started() &&
+      Boolean(this.name().trim()) &&
+      Boolean(this.subsidiaryId()) &&
+      !this.busy() &&
+      !['describe', 'duplicate', 'existing'].includes(this.phase()),
   );
 
   protected readonly suggestions = computed<Suggestion[]>(() => {
     if (this.busy()) return [];
     if (this.phase() === 'describe') return STARTERS;
+    if (this.phase() === 'existing') return [{ text: START_OVER_CHIP, fill: false }];
     if (this.phase() === 'closing') {
       const q = this.pending();
       return [...(q?.chips ?? []).map((text) => ({ text, fill: false })), { text: SKIP_CHIP, fill: false }];
@@ -438,6 +525,8 @@ export class AiAssisted {
         return 'Describe the activity: who the data is about, what you collect and why, the tools involved, how long you keep it…';
       case 'closing':
         return 'Type your answer, pick a suggestion, or skip';
+      case 'duplicate':
+        return 'Choose what to do about the likely duplicate';
       default:
         return 'Message the RoPA assistant';
     }
@@ -455,6 +544,32 @@ export class AiAssisted {
         `Every value I fill in quotes your text, I run the skill's checks as we go, and I'll ask about ` +
         `anything that's missing or needs confirming. Watch the draft and its checks build on the right.`,
     });
+    this.#initial = this.#snapshot();
+
+    // Started from an existing record (Processing activities → Create variation with AI).
+    const from = Number(this.#route.snapshot.queryParamMap.get('from'));
+    const source = from ? profile(from) : undefined;
+    if (source && canView(source)) {
+      afterNextRender(() => this.#startFrom(source.id), { injector: this.#injector });
+    }
+  }
+
+  #initial!: Snapshot;
+
+  /** Draft from an existing record: the user turn names it; the record's content is the description. */
+  #startFrom(id: number): void {
+    const source = profile(id)!;
+    this.#fromRecord = id;
+    const userTurn = this.#push({ from: 'user', text: `Start from ${source.name} (#${id})`, meta: 'Selected in Processing activities' });
+    this.#snapshots.set(userTurn.id, this.#snapshot());
+    this.#reply(describeProfile(source), []);
+  }
+
+  /** After "Use existing record": clear the draft and start again. */
+  #startOver(): Reply {
+    this.#restore(this.#initial);
+    this.#fromRecord = null;
+    return { text: 'Describe the next processing activity, attach a document about it, or pick a sample.' };
   }
 
   protected isUpdating(key: string): boolean {
@@ -498,7 +613,8 @@ export class AiAssisted {
     // Read attachments synchronously: the tray clears once the send succeeds (AST-09).
     const files = this.files();
     if (this.busy()) return;
-    const sample = SAMPLE_CHIPS[prompt];
+    const scenario = SCENARIOS.find((s) => s.chip === prompt);
+    const sample = scenario && pickVariant(scenario);
     const text = sample?.text ?? prompt;
     const userTurn = this.#push({
       from: 'user',
@@ -538,7 +654,7 @@ export class AiAssisted {
   protected onStreamComplete(id: number): void {
     const after = this.#after.get(id);
     this.#after.delete(id);
-    if (!this.#abort) return; // the greeting
+    if (!this.#abort || id !== this.#replyId) return; // the greeting, still streaming when the user sent
     const stopped = this.#abort.signal.aborted;
     this.#abort = null;
     this.busy.set(false);
@@ -564,6 +680,7 @@ export class AiAssisted {
     this.busy.set(true);
     if (this.phase() === 'describe') this.creating.set(true);
     const id = this.#nextId++;
+    this.#replyId = id;
     this.#push({ id, from: 'assistant', text: '', source: this.#send(id, prompt, files, controller.signal) });
   }
 
@@ -614,24 +731,74 @@ export class AiAssisted {
         const cue = x?.roleCue;
         this.roleCue.set(cue);
         if (cue) this.role.set(cue.role);
-        this.phase.set('details');
 
         const found = Object.keys(x?.values ?? {}).length;
         const links = x?.relationships.length ?? 0;
-        const from = docs.length ? `your document${prompt.trim() ? ' and message' : ''}` : 'your description';
+        const from = this.#fromRecord
+          ? 'the record you picked'
+          : docs.length
+            ? `your document${prompt.trim() ? ' and message' : ''}`
+            : 'your description';
+        const extracted =
+          unreadableNote +
+          (found
+            ? `I've extracted ${plural(found, 'value')} from ${from}`
+            : `I couldn't find any Article 30 values in ${from}, so I'll ask about each one`) +
+          (links ? ` and ${plural(links, 'linked item')} (vendors, systems and data categories)` : '') +
+          '. Each value quotes the text it came from.\n\n';
+
+        // Check for a likely duplicate before anything is created (user story 2.1).
+        const match = findDuplicate(
+          draftProfile({
+            name: this.name().trim(),
+            text: description,
+            role: this.role(),
+            subsidiaryId: this.subsidiaryId(),
+            values: x?.values ?? {},
+            relationships: x?.relationships ?? [],
+          }),
+          this.#fromRecord ?? undefined,
+        );
+        if (match) {
+          this.duplicate.set(match);
+          this.duplicateChoice.set(null);
+          this.phase.set('duplicate');
+          return {
+            text:
+              extracted +
+              `Before I create anything, I checked the ${plural(match.checked, 'processing activity', 'processing activities')} ` +
+              `you can view. ${match.record.name} (#${match.record.id}) is a ${match.strength.toLowerCase()} for this one. ` +
+              `${match.because}\n\nThe overlapping fields are on the right. Choose what to do below. Nothing is created, ` +
+              'linked or inherited until you confirm.',
+            after: () => this.openDuplicate(),
+          };
+        }
+        this.phase.set('details');
         return {
           text:
-            unreadableNote +
-            (found
-              ? `I've extracted ${plural(found, 'value')} from ${from}`
-              : `I couldn't find any Article 30 values in ${from}, so I'll ask about each one`) +
-            (links ? ` and ${plural(links, 'linked item')} (vendors, systems and data categories)` : '') +
-            '. Each value quotes the text it came from.\n\n' +
+            extracted +
+            `I checked the processing activities you can view and found no likely duplicates.\n\n` +
             "Next I need the record's name, the group company that owns it, and its role, because the role decides " +
             'which Article 30 fields apply.',
           after: () => this.openChain(),
         };
       }
+
+      // The user confirmed what to do about the likely duplicate (user story 2.3, 2.4).
+      case 'duplicate': {
+        const match = this.duplicate();
+        const action = DUPLICATE_ACTIONS.find((a) => a.label === prompt.trim())?.value;
+        if (!match || !action) {
+          return {
+            text: 'Choose what to do about the likely duplicate, then confirm it. Nothing changes until you do.',
+            after: () => this.openDuplicate(),
+          };
+        }
+        return this.#applyDuplicate(action, match);
+      }
+
+      case 'existing':
+        return this.#startOver();
 
       // SKILL.md step 2 done (role and entity); step 4: run the checks.
       case 'details': {
@@ -824,6 +991,78 @@ export class AiAssisted {
     this.handled.update((h) => (h.includes(id) ? h : [...h, id]));
   }
 
+  #applyDuplicate(action: DuplicateAction, match: DuplicateMatch): Reply {
+    const rec = match.record;
+    const ref = `${rec.name} (#${rec.id})`;
+    this.duplicateDecision.set({ action, record: { id: rec.id, name: rec.name } });
+    this.duplicateOpen.set(false);
+    const details =
+      "Next I need the record's name, the group company that owns it, and its role, because the role decides " +
+      'which Article 30 fields apply.';
+
+    switch (action) {
+      case 'use':
+        this.phase.set('existing');
+        return {
+          text:
+            `Done. I haven't created a new record: ${ref} stays the record of this activity, owned by ${rec.owner}. ` +
+            `If your description adds something it's missing, ask ${rec.owner} to update it at its next review.`,
+        };
+      case 'variation': {
+        this.notes.update((n) => ({ ...n, duplicateDecision: `Local variation of ${ref}, inheriting its shared fields.` }));
+        this.phase.set('details');
+        const fields = Object.keys(this.inherited()).map((k) => this.#fieldLabel(k));
+        return {
+          text:
+            `I've linked this draft to ${ref} as a local variation. ` +
+            (fields.length
+              ? `It inherits ${listText(fields)} from it. Anything you described yourself stays local, and the reviewer sees which values are inherited.`
+              : 'Your draft already sets every field it could inherit, so it keeps its own values.') +
+            `\n\n${details}`,
+          after: () => this.openChain(),
+        };
+      }
+      case 'dismiss':
+        this.notes.update((n) => ({ ...n, duplicateDecision: `Not a duplicate of ${ref}. Flag dismissed by ${SIGNED_IN_USER}.` }));
+        this.phase.set('details');
+        return {
+          text: `OK, I've dismissed the flag and noted it for the reviewer. This will be a new record, not linked to ${ref}.\n\n${details}`,
+          after: () => this.openChain(),
+        };
+    }
+  }
+
+  #fieldLabel(key: string): string {
+    return (this.report().fields.find((f) => f.key === key)?.label ?? key).replace(/\s*\(Art\..*\)$/, '').toLowerCase();
+  }
+
+  // ---- Duplicate card (user story 2.2, 2.3) ----------------------------------------
+
+  protected openDuplicate(): void {
+    this.duplicateOpen.set(true);
+    afterNextRender(() => this.duplicateCard()?.nativeElement.focus(), { injector: this.#injector });
+  }
+
+  protected closeDuplicate(): void {
+    this.duplicateOpen.set(false);
+    this.#focusPrompt();
+  }
+
+  /** The confirmation: only now does the choice take effect, as a turn in the conversation. */
+  protected confirmDuplicate(): void {
+    const choice = DUPLICATE_ACTIONS.find((a) => a.value === this.duplicateChoice());
+    if (!choice || this.busy()) return;
+    this.duplicateOpen.set(false);
+    this.onSend(choice.label);
+    this.#focusPrompt();
+  }
+
+  protected readonly selectedDuplicateAction = computed(() =>
+    DUPLICATE_ACTIONS.find((a) => a.value === this.duplicateChoice()),
+  );
+
+  private readonly duplicateCard = viewChild('duplicateCard', { read: ElementRef });
+
   // ---- Record details chain (SKILL.md step 2) -----------------------------------
 
   protected openChain(): void {
@@ -883,6 +1122,7 @@ export class AiAssisted {
       relationships,
       notes: this.notes(),
       submittedBy: SIGNED_IN_USER,
+      duplicateCheck: this.#duplicateCheck(),
     });
     const url = handoffUrl(handoff);
     // Open first, synchronously in the click, so popup blockers allow it.
@@ -930,6 +1170,17 @@ export class AiAssisted {
     });
   }
 
+  #duplicateCheck() {
+    const match = this.duplicate();
+    const decision = this.duplicateDecision();
+    if (!match || !decision) return undefined;
+    return {
+      matched: { id: match.record.id, name: match.record.name, score: match.score, rationale: match.rationale },
+      decision: decision.action,
+      inheritedFields: decision.action === 'variation' ? Object.keys(this.inherited()) : [],
+    };
+  }
+
   // ---- State helpers -------------------------------------------------------------
 
   #push(turn: Omit<Turn, 'id'> & { id?: number }): Turn {
@@ -956,6 +1207,8 @@ export class AiAssisted {
       subsidiaryId: this.subsidiaryId(),
       role: this.role(),
       roleCue: this.roleCue(),
+      duplicate: this.duplicate(),
+      duplicateDecision: this.duplicateDecision(),
     };
   }
 
@@ -976,6 +1229,10 @@ export class AiAssisted {
     this.subsidiaryId.set(s.subsidiaryId);
     this.role.set(s.role);
     this.roleCue.set(s.roleCue);
+    this.duplicate.set(s.duplicate);
+    this.duplicateDecision.set(s.duplicateDecision);
+    this.duplicateChoice.set(null);
+    this.duplicateOpen.set(false);
     this.chainOpen.set(false);
   }
 }
