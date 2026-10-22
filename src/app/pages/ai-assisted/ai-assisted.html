@@ -1,680 +1,684 @@
-<app-page-header title="AI Assisted RoPA Creation">
-  <p class="crumbs">
-    <a routerLink="/processing-activities">Processing activities</a> / New record
-  </p>
-</app-page-header>
+@if (view() === 'start') {
+  <app-ai-start [sessions]="sessions()" (begin)="begin($event)" />
+} @else {
+  <app-page-header title="AI Assisted RoPA Creation">
+    <p class="crumbs">
+      <a routerLink="/processing-activities">Processing activities</a> / New record
+    </p>
+  </app-page-header>
 
-<div class="layout">
-  <!-- Conversation -->
-  <oc-assistant-thread class="thread" label="RoPA authoring assistant">
-    <div
-      class="viewport"
-      ocAssistantViewport
-      #viewport="ocAssistantViewport"
-      label="Conversation with the RoPA assistant"
-    >
-      <div class="turns">
-        @for (t of turns(); track t.id) {
-          @if (t.from === 'user') {
-            <oc-assistant-message
-              from="user"
-              author="You"
-              [meta]="t.meta"
-              [text]="t.text"
-              (resend)="onResend(t.id, $event)"
-            >
-              <oc-avatar
-                slot="avatar"
-                size="sm"
-                [initials]="userInitials"
-                [label]="user"
-                [showTooltip]="false"
-              />
-            </oc-assistant-message>
-          } @else {
-            <oc-assistant-message from="assistant" author="RoPA assistant" [meta]="t.meta">
-              <oc-avatar slot="avatar" size="sm" label="RoPA assistant" [showTooltip]="false">
-                <oc-icon name="ai-sparkles" />
-              </oc-avatar>
-              @if (streamState(t.id) === 'pending') {
-                <oc-assistant-thinking label="The RoPA assistant is working on a reply" />
-              }
-              <span
-                [ocStream]="t.source ?? ''"
-                (streamState)="setStreamState(t.id, $event)"
-                (complete)="onStreamComplete(t.id)"
-              ></span>
-            </oc-assistant-message>
-          }
-        }
-      </div>
-    </div>
-
-    @if (!viewport.atBottom()) {
-      <button
-        oc-icon-button
-        ocAssistantScrollToBottom
-        class="jump"
-        variant="secondary"
-        size="sm"
-        label="Jump to latest"
+  <div class="layout">
+    <!-- Conversation -->
+    <oc-assistant-thread class="thread" label="RoPA authoring assistant">
+      <div
+        class="viewport"
+        ocAssistantViewport
+        #viewport="ocAssistantViewport"
+        label="Conversation with the RoPA assistant"
       >
-        <oc-icon name="chevron-down" />
-      </button>
-    }
-
-    @if (chainOpen()) {
-      <!-- The details chain replaces the composer while it's open (AST-22). -->
-      <div class="chain">
-        <oc-assistant-steps label="Record details" [(step)]="chainStep" (close)="closeChain()">
-          <ng-template ocAssistantStep>
-            <p ocAssistantStepTitle class="step-title">What should this record be called?</p>
-            <oc-input
-              ariaLabel="Activity name"
-              placeholder="e.g. Candidate screening"
-              [ngModel]="name()"
-              (ngModelChange)="name.set($event ?? '')"
-            />
-            <div class="step-actions">
-              <button oc-button size="sm" [disabled]="!name().trim()" (click)="chainStep.set(1)">
-                Next
-              </button>
-            </div>
-          </ng-template>
-
-          <ng-template ocAssistantStep>
-            <p ocAssistantStepTitle class="step-title">Which group company owns this activity?</p>
-            <oc-select
-              aria-label="Owning entity"
-              placeholder="Select a company"
-              [displayWith]="subsidiaryLabel"
-              [ngModel]="subsidiaryId()"
-              (ngModelChange)="subsidiaryId.set($event)"
-            >
-              @for (s of subsidiaries; track s.id) {
-                <oc-select-option [value]="s.id">{{ s.name }}</oc-select-option>
-              }
-            </oc-select>
-            <div class="step-actions">
-              <button oc-button size="sm" [disabled]="!subsidiaryId()" (click)="chainStep.set(2)">
-                Next
-              </button>
-            </div>
-          </ng-template>
-
-          <ng-template ocAssistantStep>
-            <p ocAssistantStepTitle class="step-title">
-              What role does the owning company play in this activity?
-            </p>
-            @if (roleCue(); as cue) {
-              <p class="step-cue">
-                <oc-icon name="ai-sparkles" size="sm" />
-                <span
-                  >Suggested: <strong>{{ roleLabels[cue.role] }}</strong
-                  >, from “{{ cue.evidence }}”</span
-                >
-              </p>
-            }
-            <oc-radio-group
-              aria-label="Role"
-              orientation="vertical"
-              [ngModel]="role()"
-              (ngModelChange)="role.set($event)"
-            >
-              @for (r of roles; track r) {
-                <button oc-radio-item [value]="r">{{ roleLabels[r] }}</button>
-              }
-            </oc-radio-group>
-            <p class="step-help">{{ roleHelp[role()] }}</p>
-            <div class="step-actions">
-              @if (!name().trim() || !subsidiaryId()) {
-                <span class="step-help">Add the record name and owning entity first.</span>
-              }
-              <button
-                oc-button
-                variant="accent"
-                size="sm"
-                [disabled]="!name().trim() || !subsidiaryId()"
-                (click)="finishDetails()"
+        <div class="turns">
+          @for (t of turns(); track t.id) {
+            @if (t.from === 'user') {
+              <oc-assistant-message
+                from="user"
+                author="You"
+                [meta]="t.meta"
+                [text]="t.text"
+                (resend)="onResend(t.id, $event)"
               >
-                <oc-icon slot="leading" name="ai-sparkles" />
-                Continue
-              </button>
-            </div>
-          </ng-template>
-        </oc-assistant-steps>
+                <oc-avatar
+                  slot="avatar"
+                  size="sm"
+                  [initials]="userInitials"
+                  [label]="user"
+                  [showTooltip]="false"
+                />
+              </oc-assistant-message>
+            } @else {
+              <oc-assistant-message from="assistant" author="RoPA assistant" [meta]="t.meta">
+                <oc-avatar slot="avatar" size="sm" label="RoPA assistant" [showTooltip]="false">
+                  <oc-icon name="ai-sparkles" />
+                </oc-avatar>
+                @if (streamState(t.id) === 'pending') {
+                  <oc-assistant-thinking label="The RoPA assistant is working on a reply" />
+                }
+                <span
+                  [ocStream]="t.source ?? ''"
+                  (streamState)="setStreamState(t.id, $event)"
+                  (complete)="onStreamComplete(t.id)"
+                ></span>
+              </oc-assistant-message>
+            }
+          }
+        </div>
       </div>
-    } @else if (duplicateOpen() && duplicate(); as m) {
-      <!-- The duplicate decision replaces the composer until it's confirmed or hidden. -->
-      <section class="dup-card" #duplicateCard tabindex="-1" aria-labelledby="dup-card-title">
-        <div class="dup-card-head">
-          <oc-icon name="triangle-exclamation" />
-          <h3 id="dup-card-title">Likely duplicate</h3>
-          <oc-badge size="sm" color="warning">{{ m.strength }}</oc-badge>
-          <button
-            oc-icon-button
-            class="dup-hide"
-            variant="tertiary"
-            size="sm"
-            label="Hide the duplicate decision"
-            (click)="closeDuplicate()"
-          >
-            <oc-icon name="xmark" />
-          </button>
-        </div>
-        <p class="dup-record">
-          <strong>{{ m.record.name }}</strong>
-          <span class="sub"
-            >#{{ m.record.id }} · {{ roleLabels[m.record.role] }} ·
-            {{ subsidiaryLabel(m.record.subsidiaryId) }}</span
-          >
-        </p>
-        <oc-radio-group
-          aria-label="What to do about the likely duplicate"
-          orientation="vertical"
-          [ngModel]="duplicateChoice()"
-          (ngModelChange)="duplicateChoice.set($event)"
+
+      @if (!viewport.atBottom()) {
+        <button
+          oc-icon-button
+          ocAssistantScrollToBottom
+          class="jump"
+          variant="secondary"
+          size="sm"
+          label="Jump to latest"
         >
-          @for (a of duplicateActions; track a.value) {
-            <button oc-radio-item [value]="a.value">{{ a.label }}</button>
-          }
-        </oc-radio-group>
-        @if (selectedDuplicateAction(); as a) {
-          <p class="step-help">{{ a.help }} {{ a.confirm }}</p>
-        } @else {
-          <p class="step-help">Pick one. Nothing is created, linked or inherited until you confirm.</p>
-        }
-        <div class="step-actions">
-          <button
-            oc-button
-            variant="primary"
-            size="sm"
-            [disabled]="!duplicateChoice() || busy()"
-            (click)="confirmDuplicate()"
-          >
-            Confirm
-          </button>
-        </div>
-      </section>
-    } @else {
-      @if (suggestions().length || (phase() === 'details' && !busy()) || (phase() === 'duplicate' && !busy())) {
-        <div class="suggestions" role="group" aria-label="Suggestions">
-          @if (phase() === 'duplicate' && !busy()) {
-            <button oc-button variant="secondary" size="sm" (click)="openDuplicate()">
-              <oc-icon slot="leading" name="triangle-exclamation" />
-              Review likely duplicate
-            </button>
-          }
-          @if (phase() === 'details' && !busy()) {
-            <button oc-button variant="secondary" size="sm" (click)="openChain()">
-              <oc-icon slot="leading" name="ai-sparkles" />
-              Add record details
-            </button>
-          }
-          @for (s of suggestions(); track s.text) {
-            <!-- Fill chips put an editable template in the composer; the others send straight away. -->
-            <button
-              oc-assistant-suggestion
-              [suggestion]="s.text"
-              [setPromptOnClick]="s.fill"
-              (click)="s.fill || onSend(s.text)"
-            ></button>
-          }
-        </div>
+          <oc-icon name="chevron-down" />
+        </button>
       }
 
-      <oc-assistant-composer
-        label="Message the RoPA assistant"
-        [(files)]="files"
-        [maxFiles]="1"
-        [maxSize]="1000000"
-        (send)="onSend($event)"
-      >
-        <div oc-assistant-attachment-tray></div>
-        <textarea
-          oc-textarea
-          ocAssistantInput
-          #prompt
-          rows="2"
-          aria-label="Message"
-          [placeholder]="placeholder()"
-        ></textarea>
-        <div oc-assistant-actions>
-          <button
-            oc-icon-button
-            ocAssistantAttach
-            variant="tertiary"
-            size="sm"
-            label="Attach a document"
-            accept=".txt,.md,.csv,text/plain"
-            [multiple]="false"
-          >
-            <oc-icon name="paperclip" />
-          </button>
-          <span slot="end">
-            @if (busy()) {
-              <button
-                oc-icon-button
-                ocAssistantStop
-                variant="secondary"
-                size="sm"
-                label="Stop"
-                (stop)="stop()"
+      @if (chainOpen()) {
+        <!-- The details chain replaces the composer while it's open (AST-22). -->
+        <div class="chain">
+          <oc-assistant-steps label="Record details" [(step)]="chainStep" (close)="closeChain()">
+            <ng-template ocAssistantStep>
+              <p ocAssistantStepTitle class="step-title">What should this record be called?</p>
+              <oc-input
+                ariaLabel="Activity name"
+                placeholder="e.g. Candidate screening"
+                [ngModel]="name()"
+                (ngModelChange)="name.set($event ?? '')"
+              />
+              <div class="step-actions">
+                <button oc-button size="sm" [disabled]="!name().trim()" (click)="chainStep.set(1)">
+                  Next
+                </button>
+              </div>
+            </ng-template>
+
+            <ng-template ocAssistantStep>
+              <p ocAssistantStepTitle class="step-title">Which group company owns this activity?</p>
+              <oc-select
+                aria-label="Owning entity"
+                placeholder="Select a company"
+                [displayWith]="subsidiaryLabel"
+                [ngModel]="subsidiaryId()"
+                (ngModelChange)="subsidiaryId.set($event)"
               >
-                <oc-icon name="circle-stop" />
-              </button>
-            } @else {
-              <button oc-icon-button ocAssistantSubmit variant="primary" size="sm" label="Send">
-                <oc-icon name="paper-plane" />
-              </button>
-            }
-          </span>
-        </div>
-      </oc-assistant-composer>
-    }
-  </oc-assistant-thread>
+                @for (s of subsidiaries; track s.id) {
+                  <oc-select-option [value]="s.id">{{ s.name }}</oc-select-option>
+                }
+              </oc-select>
+              <div class="step-actions">
+                <button oc-button size="sm" [disabled]="!subsidiaryId()" (click)="chainStep.set(2)">
+                  Next
+                </button>
+              </div>
+            </ng-template>
 
-  <!-- Live draft, checked with the ropa-authoring skill -->
-  <aside class="draft" aria-labelledby="draft-title" [attr.aria-busy]="creating() || updating().size > 0">
-    <div class="draft-scroll">
-      <div class="draft-head">
-        <h2 id="draft-title">Draft record</h2>
-        @if (sent()) {
-          <oc-badge size="sm" color="success">Sent</oc-badge>
-        } @else if (creating()) {
-          <oc-badge size="sm" color="purple">Creating</oc-badge>
-        } @else {
-          @switch (phase()) {
-            @case ('describe') {
-              <oc-badge size="sm">Not started</oc-badge>
-            }
-            @case ('duplicate') {
-              <oc-badge size="sm" color="warning">Possible duplicate</oc-badge>
-            }
-            @case ('existing') {
-              <oc-badge size="sm">Not created</oc-badge>
-            }
-            @case ('ready') {
-              <oc-badge size="sm" color="success">Ready to send</oc-badge>
-            }
-            @default {
-              <oc-badge size="sm" color="purple">Drafting</oc-badge>
-            }
-          }
-        }
-      </div>
-
-      @if (creating()) {
-        <p class="visually-hidden" role="status">Creating the draft record</p>
-        <div class="creating" aria-hidden="true">
-          <div class="basics">
-            @for (b of [1, 2, 3]; track b) {
-              <div>
-                <oc-skeleton class="sk-label" />
-                <oc-skeleton class="sk-line" />
-              </div>
-            }
-          </div>
-          <div class="score">
-            <oc-skeleton class="sk-line" />
-            <oc-skeleton class="sk-bar" />
-          </div>
-          <oc-skeleton class="sk-heading" />
-          <div class="fields">
-            @for (b of [1, 2, 3, 4, 5, 6]; track b) {
-              <div class="sk-field">
-                <oc-skeleton class="sk-label" />
-                <oc-skeleton class="sk-line" />
-                <oc-skeleton class="sk-line short" />
-              </div>
-            }
-          </div>
-        </div>
-      } @else {
-        @if (duplicate(); as m) {
-          @if (phase() === 'duplicate') {
-            <section class="dup-flag" aria-labelledby="dup-flag-title">
-              <div class="dup-flag-head">
-                <oc-icon name="triangle-exclamation" />
-                <h3 id="dup-flag-title">
-                  Likely duplicate of {{ m.record.name }} (#{{ m.record.id }})
-                </h3>
-              </div>
-              <p>{{ m.rationale }}</p>
-              <table class="dup-overlaps">
-                <caption class="visually-hidden">
-                  Fields that overlap with {{ m.record.name }}
-                </caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Overlapping field</th>
-                    <th scope="col">This draft</th>
-                    <th scope="col">{{ m.record.name }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (o of m.overlaps; track o.label) {
-                    <tr>
-                      <th scope="row">{{ o.label }}</th>
-                      <td>{{ o.draft }}</td>
-                      <td>{{ o.existing }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-              <p class="sub">
-                Checked against the {{ m.checked }} processing activities you can view. Nothing is
-                created, linked or inherited until you confirm a choice in the conversation.
+            <ng-template ocAssistantStep>
+              <p ocAssistantStepTitle class="step-title">
+                What role does the owning company play in this activity?
               </p>
-            </section>
-          } @else if (phase() === 'existing') {
-            <oc-alert
-              class="dup-resolved"
-              intent="info"
-              size="sm"
-              [dismissible]="false"
-              [title]="'Using ' + m.record.name + ' (#' + m.record.id + ')'"
-              description="No new record was created. This draft is kept here for reference only."
-            />
-          }
-        }
-        <dl class="basics">
-          <div>
-            <dt>Record name</dt>
-            @if (isUpdating('basic:name')) {
-              <dd class="updating"><oc-skeleton class="sk-line" /></dd>
-            } @else {
-              <dd [class.missing]="!name().trim()">{{ name().trim() || 'Not set yet' }}</dd>
-            }
-          </div>
-          <div>
-            <dt>Owning entity</dt>
-            @if (isUpdating('basic:entity')) {
-              <dd class="updating"><oc-skeleton class="sk-line" /></dd>
-            } @else {
-              <dd [class.missing]="!subsidiaryId()">
-                {{ report().owningEntity?.path || 'Not set yet' }}
-              </dd>
-            }
-          </div>
-          <div>
-            <dt>Role</dt>
-            @if (isUpdating('basic:role')) {
-              <dd class="updating"><oc-skeleton class="sk-line" /></dd>
-            } @else if (phase() === 'describe' || phase() === 'details') {
-              <dd class="missing">Not set yet</dd>
-            } @else {
-              <dd>
-                {{ report().roleLabel }} <span class="sub">· {{ report().roleDetail }}</span>
-              </dd>
-            }
-          </div>
-          @if (duplicateDecision(); as d) {
-          @if (d.action !== 'use') {
-            <div>
-              <dt>{{ d.action === 'variation' ? 'Local variation of' : 'Duplicate check' }}</dt>
-              <dd class="linked">
-                @if (d.action === 'variation') {
-                  <oc-icon name="code-branch" size="sm" />
-                  {{ d.record.name }} <span class="sub">#{{ d.record.id }}</span>
-                } @else {
-                  Not a duplicate of {{ d.record.name }} <span class="sub">#{{ d.record.id }}</span>
+              @if (roleCue(); as cue) {
+                <p class="step-cue">
+                  <oc-icon name="ai-sparkles" size="sm" />
+                  <span
+                    >Suggested: <strong>{{ roleLabels[cue.role] }}</strong
+                    >, from “{{ cue.evidence }}”</span
+                  >
+                </p>
+              }
+              <oc-radio-group
+                aria-label="Role"
+                orientation="vertical"
+                [ngModel]="role()"
+                (ngModelChange)="role.set($event)"
+              >
+                @for (r of roles; track r) {
+                  <button oc-radio-item [value]="r">{{ roleLabels[r] }}</button>
                 }
-              </dd>
-            </div>
-          }
-        }
-        @if (sourceFile(); as file) {
-            <div>
-              <dt>Source</dt>
-              <dd>{{ file }}</dd>
-            </div>
-          }
-        </dl>
-
-        <div class="score">
-          <div class="score-row">
-            <span
-              >Completeness
-              <span class="sub">{{
-                role() === 'processor' ? 'Art. 30(2), 7 items' : 'Art. 30(1), 13 items'
-              }}</span></span
+              </oc-radio-group>
+              <p class="step-help">{{ roleHelp[role()] }}</p>
+              <div class="step-actions">
+                @if (!name().trim() || !subsidiaryId()) {
+                  <span class="step-help">Add the record name and owning entity first.</span>
+                }
+                <button
+                  oc-button
+                  variant="accent"
+                  size="sm"
+                  [disabled]="!name().trim() || !subsidiaryId()"
+                  (click)="finishDetails()"
+                >
+                  <oc-icon slot="leading" name="ai-sparkles" />
+                  Continue
+                </button>
+              </div>
+            </ng-template>
+          </oc-assistant-steps>
+        </div>
+      } @else if (duplicateOpen() && duplicate(); as m) {
+        <!-- The duplicate decision replaces the composer until it's confirmed or hidden. -->
+        <section class="dup-card" #duplicateCard tabindex="-1" aria-labelledby="dup-card-title">
+          <div class="dup-card-head">
+            <oc-icon name="triangle-exclamation" />
+            <h3 id="dup-card-title">Likely duplicate</h3>
+            <oc-badge size="sm" color="warning">{{ m.strength }}</oc-badge>
+            <button
+              oc-icon-button
+              class="dup-hide"
+              variant="tertiary"
+              size="sm"
+              label="Hide the duplicate decision"
+              (click)="closeDuplicate()"
             >
-            <strong>{{ started() ? report().completeness : 0 }}%</strong>
+              <oc-icon name="xmark" />
+            </button>
           </div>
-          <oc-progress
-            size="sm"
-            label="Record completeness"
-            [value]="started() ? report().completeness : 0"
-            [variant]="report().incomplete ? 'warning' : 'success'"
-          />
-          @if (started() && report().incomplete) {
-            <p class="sub">Below 80%: the dashboard flags the record as incomplete.</p>
+          <p class="dup-record">
+            <strong>{{ m.record.name }}</strong>
+            <span class="sub"
+              >#{{ m.record.id }} · {{ roleLabels[m.record.role] }} ·
+              {{ subsidiaryLabel(m.record.subsidiaryId) }}</span
+            >
+          </p>
+          <oc-radio-group
+            aria-label="What to do about the likely duplicate"
+            orientation="vertical"
+            [ngModel]="duplicateChoice()"
+            (ngModelChange)="duplicateChoice.set($event)"
+          >
+            @for (a of duplicateActions; track a.value) {
+              <button oc-radio-item [value]="a.value">{{ a.label }}</button>
+            }
+          </oc-radio-group>
+          @if (selectedDuplicateAction(); as a) {
+            <p class="step-help">{{ a.help }} {{ a.confirm }}</p>
+          } @else {
+            <p class="step-help">Pick one. Nothing is created, linked or inherited until you confirm.</p>
+          }
+          <div class="step-actions">
+            <button
+              oc-button
+              variant="primary"
+              size="sm"
+              [disabled]="!duplicateChoice() || busy()"
+              (click)="confirmDuplicate()"
+            >
+              Confirm
+            </button>
+          </div>
+        </section>
+      } @else {
+        @if (suggestions().length || (phase() === 'details' && !busy()) || (phase() === 'duplicate' && !busy())) {
+          <div class="suggestions" role="group" aria-label="Suggestions">
+            @if (phase() === 'duplicate' && !busy()) {
+              <button oc-button variant="secondary" size="sm" (click)="openDuplicate()">
+                <oc-icon slot="leading" name="triangle-exclamation" />
+                Review likely duplicate
+              </button>
+            }
+            @if (phase() === 'details' && !busy()) {
+              <button oc-button variant="secondary" size="sm" (click)="openChain()">
+                <oc-icon slot="leading" name="ai-sparkles" />
+                Add record details
+              </button>
+            }
+            @for (s of suggestions(); track s) {
+              <!-- Suggestions send straight away; OneCore leaves the click to the app. -->
+              <button
+                oc-assistant-suggestion
+                [suggestion]="s"
+                [setPromptOnClick]="false"
+                (click)="onSend(s)"
+              ></button>
+            }
+          </div>
+        }
+
+        <oc-assistant-composer
+          label="Message the RoPA assistant"
+          [(files)]="files"
+          [maxFiles]="1"
+          [maxSize]="1000000"
+          (send)="onSend($event)"
+        >
+          <div oc-assistant-attachment-tray></div>
+          <textarea
+            oc-textarea
+            ocAssistantInput
+            #prompt
+            rows="2"
+            aria-label="Message"
+            [placeholder]="placeholder()"
+          ></textarea>
+          <div oc-assistant-actions>
+            <button
+              oc-icon-button
+              ocAssistantAttach
+              variant="tertiary"
+              size="sm"
+              label="Attach a document"
+              accept=".txt,.md,.csv,text/plain"
+              [multiple]="false"
+            >
+              <oc-icon name="paperclip" />
+            </button>
+            <span slot="end">
+              @if (busy()) {
+                <button
+                  oc-icon-button
+                  ocAssistantStop
+                  variant="secondary"
+                  size="sm"
+                  label="Stop"
+                  (stop)="stop()"
+                >
+                  <oc-icon name="circle-stop" />
+                </button>
+              } @else {
+                <button oc-icon-button ocAssistantSubmit variant="primary" size="sm" label="Send">
+                  <oc-icon name="paper-plane" />
+                </button>
+              }
+            </span>
+          </div>
+        </oc-assistant-composer>
+      }
+    </oc-assistant-thread>
+
+    <!-- Live draft, checked with the ropa-authoring skill -->
+    <aside class="draft" aria-labelledby="draft-title" [attr.aria-busy]="creating() || updating().size > 0">
+      <div class="draft-scroll">
+        <div class="draft-head">
+          <h2 id="draft-title">Draft record</h2>
+          @if (sent()) {
+            <oc-badge size="sm" color="success">Sent</oc-badge>
+          } @else if (creating()) {
+            <oc-badge size="sm" color="purple">Creating</oc-badge>
+          } @else {
+            @switch (phase()) {
+              @case ('describe') {
+                <oc-badge size="sm">Not started</oc-badge>
+              }
+              @case ('duplicate') {
+                <oc-badge size="sm" color="warning">Possible duplicate</oc-badge>
+              }
+              @case ('existing') {
+                <oc-badge size="sm">Not created</oc-badge>
+              }
+              @case ('ready') {
+                <oc-badge size="sm" color="success">Ready to send</oc-badge>
+              }
+              @default {
+                <oc-badge size="sm" color="purple">Drafting</oc-badge>
+              }
+            }
           }
         </div>
 
-        @if (!started()) {
-          <p class="empty">
-            The draft fills in as you describe the activity. Every value quotes the text it came from,
-            and the ropa-authoring skill's checks run as it changes.
-          </p>
-        } @else {
-          <h3>Fields</h3>
-          <ul class="fields">
-            @for (f of fieldRows(); track f.key) {
-              <li [class.asking]="f.asking" [class.gap]="!f.filled" [class.updating]="isUpdating(f.key)">
-                <div class="field-head">
-                  <span class="field-label">{{ f.label }}</span>
-                  @if (f.asking) {
-                    <oc-badge size="sm" color="purple">Asking now</oc-badge>
-                  } @else if (f.filled && f.meta?.provenance === 'user') {
-                    <oc-badge size="sm" color="blue">From you</oc-badge>
-                  } @else if (f.filled && f.meta?.provenance === 'inherited') {
-                    <oc-badge size="sm" color="teal" [title]="f.meta?.rationale">Inherited</oc-badge>
-                  } @else if (f.band) {
-                    <oc-status
-                      size="sm"
-                      [intent]="bandIntent[f.band]"
-                      [label]="f.band"
-                      intentLabel="confidence"
-                    />
-                  }
+        @if (creating()) {
+          <p class="visually-hidden" role="status">Creating the draft record</p>
+          <div class="creating" aria-hidden="true">
+            <div class="basics">
+              @for (b of [1, 2, 3]; track b) {
+                <div>
+                  <oc-skeleton class="sk-label" />
+                  <oc-skeleton class="sk-line" />
                 </div>
-                @if (isUpdating(f.key)) {
-                  <div class="sk-value" aria-hidden="true">
-                    <oc-skeleton class="sk-line" />
-                    <oc-skeleton class="sk-line short" />
-                  </div>
-                } @else if (f.filled) {
-                  <p
-                    class="field-value"
-                    [class.clamp]="f.key === 'description'"
-                    [title]="f.key === 'description' ? f.value : null"
-                  >
-                    {{ f.value }}
-                  </p>
-                  @if (f.meta && f.meta.provenance === 'ai') {
-                    <blockquote>“{{ f.meta.evidence }}”</blockquote>
-                  }
-                } @else if (f.skipped) {
-                  <p class="field-value missing">Skipped. Left for the reviewer.</p>
-                } @else {
-                  <p class="field-value missing">Missing</p>
-                }
-              </li>
-            }
-          </ul>
-
-          <h3>
-            {{ role() === 'processor' ? 'Sub-processors, systems and data' : 'Linked inventory' }}
-          </h3>
-          @if (relationshipRows().length === 0) {
-            <p class="empty">No vendors, systems or data categories named yet.</p>
-          } @else {
-            <div class="links" role="list" aria-label="Linked inventory">
-              @for (r of relationshipRows(); track r.type + r.name) {
-                <oc-tag
-                  role="listitem"
-                  size="sm"
-                  removable
-                  [color]="
-                    r.special
-                      ? 'red'
-                      : r.type === 'personalData'
-                        ? 'purple'
-                        : r.type === 'vendor'
-                          ? 'blue'
-                          : 'teal'
-                  "
-                  [removeLabel]="'Remove ' + r.name"
-                  [title]="
-                    relationshipLabel[r.type] +
-                    (r.resolved ? '' : ' (not in your inventory)') +
-                    ': ' +
-                    r.rationale
-                  "
-                  (remove)="rejectRelationship(r)"
-                >
-                  {{ r.name }}{{ r.special ? ' · Art. 9' : ''
-                  }}{{ r.resolved ? '' : ' · not in inventory' }}
-                </oc-tag>
               }
             </div>
+            <div class="score">
+              <oc-skeleton class="sk-line" />
+              <oc-skeleton class="sk-bar" />
+            </div>
+            <oc-skeleton class="sk-heading" />
+            <div class="fields">
+              @for (b of [1, 2, 3, 4, 5, 6]; track b) {
+                <div class="sk-field">
+                  <oc-skeleton class="sk-label" />
+                  <oc-skeleton class="sk-line" />
+                  <oc-skeleton class="sk-line short" />
+                </div>
+              }
+            </div>
+          </div>
+        } @else {
+          @if (duplicate(); as m) {
+            @if (phase() === 'duplicate') {
+              <section class="dup-flag" aria-labelledby="dup-flag-title">
+                <div class="dup-flag-head">
+                  <oc-icon name="triangle-exclamation" />
+                  <h3 id="dup-flag-title">
+                    Likely duplicate of {{ m.record.name }} (#{{ m.record.id }})
+                  </h3>
+                </div>
+                <p>{{ m.rationale }}</p>
+                <table class="dup-overlaps">
+                  <caption class="visually-hidden">
+                    Fields that overlap with {{ m.record.name }}
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Overlapping field</th>
+                      <th scope="col">This draft</th>
+                      <th scope="col">{{ m.record.name }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (o of m.overlaps; track o.label) {
+                      <tr>
+                        <th scope="row">{{ o.label }}</th>
+                        <td>{{ o.draft }}</td>
+                        <td>{{ o.existing }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+                <p class="sub">
+                  Checked against the {{ m.checked }} processing activities you can view. Nothing is
+                  created, linked or inherited until you confirm a choice in the conversation.
+                </p>
+              </section>
+            } @else if (phase() === 'existing') {
+              <oc-alert
+                class="dup-resolved"
+                intent="info"
+                size="sm"
+                [dismissible]="false"
+                [title]="'Using ' + m.record.name + ' (#' + m.record.id + ')'"
+                description="No new record was created. This draft is kept here for reference only."
+              />
+            }
           }
-
-          <div class="split">
-            <section aria-labelledby="checks-title">
-              <h3 id="checks-title">Checks</h3>
-              @if (checkRows().length === 0) {
-                <p class="empty">No warnings.</p>
+          <dl class="basics">
+            <div>
+              <dt>Record name</dt>
+              @if (isUpdating('basic:name')) {
+                <dd class="updating"><oc-skeleton class="sk-line" /></dd>
               } @else {
-                <ul class="checks">
-                  @for (c of checkRows(); track c.field + c.issue) {
+                <dd [class.missing]="!name().trim()">{{ name().trim() || 'Not set yet' }}</dd>
+              }
+            </div>
+            <div>
+              <dt>Owning entity</dt>
+              @if (isUpdating('basic:entity')) {
+                <dd class="updating"><oc-skeleton class="sk-line" /></dd>
+              } @else {
+                <dd [class.missing]="!subsidiaryId()">
+                  {{ report().owningEntity?.path || 'Not set yet' }}
+                </dd>
+              }
+            </div>
+            <div>
+              <dt>Role</dt>
+              @if (isUpdating('basic:role')) {
+                <dd class="updating"><oc-skeleton class="sk-line" /></dd>
+              } @else if (phase() === 'describe' || phase() === 'details') {
+                <dd class="missing">Not set yet</dd>
+              } @else {
+                <dd>
+                  {{ report().roleLabel }} <span class="sub">· {{ report().roleDetail }}</span>
+                </dd>
+              }
+            </div>
+            @if (duplicateDecision(); as d) {
+            @if (d.action !== 'use') {
+              <div>
+                <dt>{{ d.action === 'variation' ? 'Local variation of' : 'Duplicate check' }}</dt>
+                <dd class="linked">
+                  @if (d.action === 'variation') {
+                    <oc-icon name="code-branch" size="sm" />
+                    {{ d.record.name }} <span class="sub">#{{ d.record.id }}</span>
+                  } @else {
+                    Not a duplicate of {{ d.record.name }} <span class="sub">#{{ d.record.id }}</span>
+                  }
+                </dd>
+              </div>
+            }
+          }
+          @if (sourceFile(); as file) {
+              <div>
+                <dt>Source</dt>
+                <dd>{{ file }}</dd>
+              </div>
+            }
+          </dl>
+
+          <div class="score">
+            <div class="score-row">
+              <span
+                >Completeness
+                <span class="sub">{{
+                  role() === 'processor' ? 'Art. 30(2), 7 items' : 'Art. 30(1), 13 items'
+                }}</span></span
+              >
+              <strong>{{ started() ? report().completeness : 0 }}%</strong>
+            </div>
+            <oc-progress
+              size="sm"
+              label="Record completeness"
+              [value]="started() ? report().completeness : 0"
+              [variant]="report().incomplete ? 'warning' : 'success'"
+            />
+            @if (started() && report().incomplete) {
+              <p class="sub">Below 80%: the dashboard flags the record as incomplete.</p>
+            }
+          </div>
+
+          @if (!started()) {
+            <p class="empty">
+              The draft fills in as you describe the activity. Every value quotes the text it came from,
+              and the ropa-authoring skill's checks run as it changes.
+            </p>
+          } @else {
+            <h3>Fields</h3>
+            <ul class="fields">
+              @for (f of fieldRows(); track f.key) {
+                <li [class.asking]="f.asking" [class.gap]="!f.filled" [class.updating]="isUpdating(f.key)">
+                  <div class="field-head">
+                    <span class="field-label">{{ f.label }}</span>
+                    @if (f.asking) {
+                      <oc-badge size="sm" color="purple">Asking now</oc-badge>
+                    } @else if (f.filled && f.meta?.provenance === 'user') {
+                      <oc-badge size="sm" color="blue">From you</oc-badge>
+                    } @else if (f.filled && f.meta?.provenance === 'inherited') {
+                      <oc-badge size="sm" color="teal" [title]="f.meta?.rationale">Inherited</oc-badge>
+                    } @else if (f.band) {
+                      <oc-status
+                        size="sm"
+                        [intent]="bandIntent[f.band]"
+                        [label]="f.band"
+                        intentLabel="confidence"
+                      />
+                    }
+                  </div>
+                  @if (isUpdating(f.key)) {
+                    <div class="sk-value" aria-hidden="true">
+                      <oc-skeleton class="sk-line" />
+                      <oc-skeleton class="sk-line short" />
+                    </div>
+                  } @else if (f.filled) {
+                    <p
+                      class="field-value"
+                      [class.clamp]="f.key === 'description'"
+                      [title]="f.key === 'description' ? f.value : null"
+                    >
+                      {{ f.value }}
+                    </p>
+                    @if (f.meta && f.meta.provenance === 'ai') {
+                      <blockquote>“{{ f.meta.evidence }}”</blockquote>
+                    }
+                  } @else if (f.skipped) {
+                    <p class="field-value missing">Skipped. Left for the reviewer.</p>
+                  } @else {
+                    <p class="field-value missing">Missing</p>
+                  }
+                </li>
+              }
+            </ul>
+
+            <h3>
+              {{ role() === 'processor' ? 'Sub-processors, systems and data' : 'Linked inventory' }}
+            </h3>
+            @if (relationshipRows().length === 0) {
+              <p class="empty">No vendors, systems or data categories named yet.</p>
+            } @else {
+              <div class="links" role="list" aria-label="Linked inventory">
+                @for (r of relationshipRows(); track r.type + r.name) {
+                  <oc-tag
+                    role="listitem"
+                    size="sm"
+                    removable
+                    [color]="
+                      r.special
+                        ? 'red'
+                        : r.type === 'personalData'
+                          ? 'purple'
+                          : r.type === 'vendor'
+                            ? 'blue'
+                            : 'teal'
+                    "
+                    [removeLabel]="'Remove ' + r.name"
+                    [title]="
+                      relationshipLabel[r.type] +
+                      (r.resolved ? '' : ' (not in your inventory)') +
+                      ': ' +
+                      r.rationale
+                    "
+                    (remove)="rejectRelationship(r)"
+                  >
+                    {{ r.name }}{{ r.special ? ' · Art. 9' : ''
+                    }}{{ r.resolved ? '' : ' · not in inventory' }}
+                  </oc-tag>
+                }
+              </div>
+            }
+
+            <div class="split">
+              <section aria-labelledby="checks-title">
+                <h3 id="checks-title">Checks</h3>
+                @if (checkRows().length === 0) {
+                  <p class="empty">No warnings.</p>
+                } @else {
+                  <ul class="checks">
+                    @for (c of checkRows(); track c.field + c.issue) {
+                      <li>
+                        <oc-badge size="sm" [color]="severityColor[c.severity]">{{
+                          severityLabel[c.severity]
+                        }}</oc-badge>
+                        <p>{{ c.issue }}</p>
+                        @if (c.answer) {
+                          <p class="answer">Your answer: {{ c.answer }}</p>
+                        }
+                      </li>
+                    }
+                  </ul>
+                }
+              </section>
+              <section aria-labelledby="posture-title">
+                <h3 id="posture-title">Posture</h3>
+                @if (report().posture.activeConditions.length) {
+                  <div class="links" role="list" aria-label="Risk conditions">
+                    @for (c of report().posture.activeConditions; track c) {
+                      <oc-tag role="listitem" size="sm">{{ c }}</oc-tag>
+                    }
+                  </div>
+                }
+                <ul class="assessments">
+                  @for (a of report().posture.requiredAssessments; track a.type) {
                     <li>
-                      <oc-badge size="sm" [color]="severityColor[c.severity]">{{
-                        severityLabel[c.severity]
-                      }}</oc-badge>
-                      <p>{{ c.issue }}</p>
-                      @if (c.answer) {
-                        <p class="answer">Your answer: {{ c.answer }}</p>
+                      <span class="field-label">{{ a.name }}</span>
+                      <span class="sub">Triggered by {{ a.triggeredBy.join(', ').toLowerCase() }}</span>
+                      @if (a.owner) {
+                        <span class="sub">Owner: {{ a.owner }}</span>
                       }
                     </li>
+                  } @empty {
+                    <li class="sub">No assessments required.</li>
                   }
                 </ul>
-              }
-            </section>
-            <section aria-labelledby="posture-title">
-              <h3 id="posture-title">Posture</h3>
-              @if (report().posture.activeConditions.length) {
-                <div class="links" role="list" aria-label="Risk conditions">
-                  @for (c of report().posture.activeConditions; track c) {
-                    <oc-tag role="listitem" size="sm">{{ c }}</oc-tag>
-                  }
-                </div>
-              }
-              <ul class="assessments">
-                @for (a of report().posture.requiredAssessments; track a.type) {
-                  <li>
-                    <span class="field-label">{{ a.name }}</span>
-                    <span class="sub">Triggered by {{ a.triggeredBy.join(', ').toLowerCase() }}</span>
-                    @if (a.owner) {
-                      <span class="sub">Owner: {{ a.owner }}</span>
-                    }
-                  </li>
-                } @empty {
-                  <li class="sub">No assessments required.</li>
-                }
-              </ul>
-              <p class="cadence">
-                <strong>Review {{ report().posture.reviewCadence.label.toLowerCase() }}</strong>
-                <span class="sub">
-                  {{ report().posture.reviewCadence.rule
-                  }}{{
-                    report().posture.requireCertification ? ', certification at each review' : ''
-                  }}
-                </span>
-              </p>
-            </section>
-          </div>
+                <p class="cadence">
+                  <strong>Review {{ report().posture.reviewCadence.label.toLowerCase() }}</strong>
+                  <span class="sub">
+                    {{ report().posture.reviewCadence.rule
+                    }}{{
+                      report().posture.requireCertification ? ', certification at each review' : ''
+                    }}
+                  </span>
+                </p>
+              </section>
+            </div>
+          }
         }
-      }
-    </div>
+      </div>
 
-    <div class="draft-foot">
-      @if (sent(); as done) {
-        <oc-alert
-          class="sent"
-          intent="success"
-          size="sm"
-          [dismissible]="false"
-          [title]="done.name + ' was sent to Data Mapping'"
-          [description]="
-            done.opened
-              ? 'It opened in a new tab and was added to Processing activities as a pending record.'
-              : 'Your browser blocked the new tab. Open Data Mapping to add it to Processing activities.'
-          "
-        />
-        <div class="sent-actions">
-          <a
-            oc-button
-            variant="secondary"
+      <div class="draft-foot">
+        @if (sent(); as done) {
+          <oc-alert
+            class="sent"
+            intent="success"
             size="sm"
-            [href]="done.url"
-            target="_blank"
-            rel="noopener"
-          >
-            <oc-icon slot="leading" name="arrow-up-right-from-square" />
-            Open Data Mapping
+            [dismissible]="false"
+            [title]="done.name + ' was sent to Data Mapping'"
+            [description]="
+              done.opened
+                ? 'It opened in a new tab and was added to Processing activities as a pending record.'
+                : 'Your browser blocked the new tab. Open Data Mapping to add it to Processing activities.'
+            "
+          />
+          <div class="sent-actions">
+            <a
+              oc-button
+              variant="secondary"
+              size="sm"
+              [href]="done.url"
+              target="_blank"
+              rel="noopener"
+            >
+              <oc-icon slot="leading" name="arrow-up-right-from-square" />
+              Open Data Mapping
+            </a>
+            <a
+              oc-button
+              variant="tertiary"
+              size="sm"
+              [href]="done.fileUrl"
+              [attr.download]="done.fileName"
+            >
+              <oc-icon slot="leading" name="arrow-down-to-bracket" />
+              Download JSON
+            </a>
+          </div>
+        } @else if (phase() === 'existing' && duplicateDecision(); as d) {
+          <a oc-button variant="secondary" routerLink="/processing-activities">
+            Open Processing activities
           </a>
-          <a
-            oc-button
-            variant="tertiary"
-            size="sm"
-            [href]="done.fileUrl"
-            [attr.download]="done.fileName"
-          >
-            <oc-icon slot="leading" name="arrow-down-to-bracket" />
-            Download JSON
-          </a>
-        </div>
-      } @else if (phase() === 'existing' && duplicateDecision(); as d) {
-        <a oc-button variant="secondary" routerLink="/processing-activities">
-          Open Processing activities
-        </a>
-        <p>
-          Nothing was sent. {{ d.record.name }} (#{{ d.record.id }}) stays the record of this
-          activity.
-        </p>
-      } @else {
-        <button oc-button variant="primary" [disabled]="!canSubmit()" [ocDialogTrigger]="confirmSend">
-          Send to Pending inventory
-        </button>
-        <ng-template #confirmSend let-close="close">
-          <oc-dialog>
-            <oc-dialog-header>
-              <h2 ocDialogTitle>Send to Pending inventory?</h2>
-              <p ocDialogDescription>
-                We'll take you back to your Data Mapping page in a new tab. This page stays open here.
-              </p>
-            </oc-dialog-header>
-            <ol class="confirm-steps">
-              <li>Data Mapping opens on Processing activities.</li>
-              <li>{{ name().trim() || 'Your record' }} is there as a new draft, marked Pending.</li>
-              <li>Review the draft and approve it to make it an active processing activity.</li>
-            </ol>
-            <oc-dialog-footer>
-              <button oc-button variant="secondary" (click)="close()">Cancel</button>
-              <button oc-button variant="primary" (click)="submit(); close()">
-                Send and open Data Mapping
-              </button>
-            </oc-dialog-footer>
-          </oc-dialog>
-        </ng-template>
-        <p>
-          Checked with the ropa-authoring skill. Sending opens Data Mapping, where a reviewer
-          approves the draft before it becomes a processing activity.
-        </p>
-      }
-    </div>
-  </aside>
-</div>
+          <p>
+            Nothing was sent. {{ d.record.name }} (#{{ d.record.id }}) stays the record of this
+            activity.
+          </p>
+        } @else {
+          <button oc-button variant="primary" [disabled]="!canSubmit()" [ocDialogTrigger]="confirmSend">
+            Send to Pending inventory
+          </button>
+          <ng-template #confirmSend let-close="close">
+            <oc-dialog>
+              <oc-dialog-header>
+                <h2 ocDialogTitle>Send to Pending inventory?</h2>
+                <p ocDialogDescription>
+                  We'll take you back to your Data Mapping page in a new tab. This page stays open here.
+                </p>
+              </oc-dialog-header>
+              <ol class="confirm-steps">
+                <li>Data Mapping opens on Processing activities.</li>
+                <li>{{ name().trim() || 'Your record' }} is there as a new draft, marked Pending.</li>
+                <li>Review the draft and approve it to make it an active processing activity.</li>
+              </ol>
+              <oc-dialog-footer>
+                <button oc-button variant="secondary" (click)="close()">Cancel</button>
+                <button oc-button variant="primary" (click)="submit(); close()">
+                  Send and open Data Mapping
+                </button>
+              </oc-dialog-footer>
+            </oc-dialog>
+          </ng-template>
+          <p>
+            Checked with the ropa-authoring skill. Sending opens Data Mapping, where a reviewer
+            approves the draft before it becomes a processing activity.
+          </p>
+        }
+      </div>
+    </aside>
+  </div>
+}

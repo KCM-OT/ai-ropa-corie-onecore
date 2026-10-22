@@ -28,10 +28,15 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
   review suggested values, follow-up questions and linked inventory → send to Pending inventory.
 - `/pending-inventory`: pending records plus AI drafts (from `DraftsStore`, kept in localStorage).
 - `/ai-assisted-ropa`: AI Assisted RoPA Creation (prototype-only, top of the sidebar and in the
-  Add processing activity menu). A OneCore `oc-assistant-thread` conversation beside a live draft
-  panel that follows the ropa-authoring skill's workflow (SKILL.md steps 1–6): describe →
-  `oc-assistant-steps` chain for name, owning entity and role (pre-selected from the description's
-  role cues) → follow-up questions planned from the checker's report → send to Pending inventory.
+  Add processing activity menu). It opens on a start screen (`pages/ai-assisted/start/`, Figma
+  Main-AI-Prompt): title, an AI input (attach a .txt/.md/.csv, dictate where the browser supports
+  speech recognition, Tab fills the template prompt, Enter sends), the sample chips, and History
+  (`data/authoring-history.ts`: three examples plus sessions started in this browser, in
+  localStorage; opening one drafts again from its description). Sending anything switches to a
+  OneCore `oc-assistant-thread` conversation beside a live draft panel that follows the
+  ropa-authoring skill's workflow (SKILL.md steps 1–6): describe → `oc-assistant-steps` chain
+  for name, owning entity and role (pre-selected from the description's role cues) → follow-up
+  questions planned from the checker's report → send to Pending inventory.
   Replies are written in the component and streamed with `[ocStream]` through one `send()`; there's
   no model. OneCore only shows Edit on a user turn that is the newest message, so Stop drops the
   partial reply to make the message editable.
@@ -46,9 +51,9 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
   inherited until the user confirms. A variation inherits the parent's fields it doesn't set itself
   (provenance `inherited`); the decision travels in the handoff as `duplicateCheck`. Record content
   for the mock list lives in `RECORD_PROFILES`.
-- **Samples** (`data/demo-samples.ts`): each sample chip picks one of three variants at random, each
-  written to overlap a different existing record (a previous RoPA record, a shared vendor, or the same
-  data subjects). `npm run skill:parity` covers every variant.
+- **Samples** (`data/demo-samples.ts`): each sample chip on the start screen picks one of three
+  variants at random, each written to overlap a different existing record (a previous RoPA record, a
+  shared vendor, or the same data subjects). `npm run skill:parity` covers every variant.
 - **Send to Pending inventory** hands the RoPA to the Data Mapping prototype (KCM-OT/ai-ropa-datamapping,
   https://ai-ropa-datamapping-sigma.vercel.app). `data/handoff.ts` packages it as JSON
   (`format: "onetrust.ropa-handoff"`, version 1: the record in the skill's shape with full evidence,

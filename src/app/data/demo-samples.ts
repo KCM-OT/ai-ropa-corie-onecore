@@ -44,7 +44,7 @@ export const SCENARIOS: SampleScenario[] = [
     ],
   },
   {
-    chip: 'Sample: client service (processor)',
+    chip: 'Sample: client services (processor)',
     variants: [
       { name: 'Client payroll', text: PROCESSOR_SAMPLE, duplicateOf: 1012, kind: 'Previous RoPA record' },
       {

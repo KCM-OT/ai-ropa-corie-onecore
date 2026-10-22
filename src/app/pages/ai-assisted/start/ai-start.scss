@@ -1,0 +1,316 @@
+// Figma: Main-AI-Prompt. Four rows: title and description, the AI input,
+// sample prompts, and History.
+
+:host {
+  display: block;
+  position: relative;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.start {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--oc-spacing-6);
+  max-width: 849px;
+  margin: 0 auto;
+  padding: calc(var(--oc-spacing-8) + var(--oc-spacing-2)) var(--oc-spacing-4) var(--oc-spacing-8);
+}
+
+// ---- Title and description ----
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+
+  h1 {
+    margin: 0;
+    color: var(--oc-primary);
+    font-size: 36px;
+    font-weight: 500;
+    line-height: var(--oc-line-height-tight);
+    letter-spacing: var(--oc-letter-spacing-tight);
+  }
+
+  p {
+    margin: 0;
+    color: var(--oc-foreground);
+    font-size: var(--oc-font-size-md);
+    line-height: var(--oc-line-height-snug);
+  }
+}
+
+// ---- AI input ----
+
+.prompt {
+  width: 100%;
+  border: var(--oc-container-border-width) solid var(--oc-secondary-hover);
+  border-radius: 30px;
+  background: var(--oc-secondary-hover);
+  transition:
+    border-color var(--oc-motion-duration-micro) var(--oc-motion-easing-standard),
+    background-color var(--oc-motion-duration-micro) var(--oc-motion-easing-standard);
+
+  &:hover {
+    border-color: var(--oc-border);
+  }
+
+  // Typing: the field lifts to white with the focus border.
+  &.focused,
+  &.listening {
+    border-color: var(--oc-border-focus);
+    background: var(--oc-input);
+  }
+}
+
+.prompt-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--oc-spacing-3);
+  min-height: 56px;
+  padding: var(--oc-spacing-3) var(--oc-spacing-3) var(--oc-spacing-3) var(--oc-spacing-6);
+}
+
+textarea {
+  flex: 1;
+  min-width: 0;
+  max-height: 200px;
+  padding: 6px 0 0;
+  border: 0;
+  outline: 0;
+  resize: none;
+  background: transparent;
+  color: var(--oc-primary);
+  font: inherit;
+  font-size: var(--oc-font-size-md);
+  line-height: var(--oc-line-height-snug);
+
+  &::placeholder {
+    color: var(--oc-muted-foreground);
+    opacity: 1;
+  }
+}
+
+// 32px icon tiles (Figma: btn_document_attachment). Hover shows the light green tile.
+.tile {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--oc-control-radius-md);
+  background: transparent;
+  color: var(--oc-primary);
+  cursor: pointer;
+  transition: background-color var(--oc-motion-duration-micro) var(--oc-motion-easing-standard);
+
+  &:hover:not(:disabled),
+  &[aria-pressed='true'] {
+    background: var(--oc-item-hover);
+  }
+
+  &:active:not(:disabled) {
+    background: var(--oc-item-active);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--oc-border-focus);
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    color: var(--oc-disabled-foreground);
+    cursor: not-allowed;
+  }
+
+  &.send {
+    background: var(--oc-brand);
+    color: var(--oc-brand-foreground, var(--oc-primary));
+
+    &:hover {
+      background: var(--oc-border-interactive-hover);
+    }
+  }
+}
+
+.mic {
+  width: 9px;
+  height: 12px;
+  fill: currentColor;
+}
+
+.listening .mic {
+  animation: pulse 1.2s var(--oc-motion-easing-standard) infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.4;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .listening .mic {
+    animation: none;
+  }
+}
+
+.attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--oc-spacing-2);
+  padding: 0 var(--oc-spacing-6) var(--oc-spacing-3);
+}
+
+.hint {
+  min-height: 1lh;
+  margin: calc(-1 * var(--oc-spacing-4)) 0 0;
+  color: var(--oc-muted-foreground);
+  font-size: var(--oc-font-size-xs);
+
+  &.error {
+    color: var(--oc-border-error);
+  }
+}
+
+// ---- Sample prompts ----
+
+.samples {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--oc-spacing-2);
+}
+
+.pill {
+  padding: 6px var(--oc-spacing-6);
+  border: var(--oc-container-border-width) solid var(--oc-border);
+  border-radius: var(--oc-control-radius-full);
+  background: var(--oc-background);
+  color: var(--oc-primary);
+  font: inherit;
+  font-size: var(--oc-font-size-md);
+  font-weight: 500;
+  line-height: var(--oc-line-height-snug);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color var(--oc-motion-duration-micro) var(--oc-motion-easing-standard),
+    background-color var(--oc-motion-duration-micro) var(--oc-motion-easing-standard);
+
+  &:hover {
+    border-color: var(--oc-border-interactive-hover);
+    background: var(--oc-item-hover);
+  }
+
+  &:active {
+    border-color: var(--oc-border-interactive-active);
+    background: var(--oc-item-active);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--oc-border-focus);
+    outline-offset: 2px;
+  }
+}
+
+// ---- History ----
+
+.history {
+  width: 100%;
+  max-width: 680px;
+  padding-top: calc(var(--oc-spacing-8) + var(--oc-spacing-2));
+
+  h2 {
+    margin: 0 0 var(--oc-spacing-3);
+    color: var(--oc-primary);
+    font-size: var(--oc-font-size-md);
+    font-weight: 500;
+  }
+
+  .count {
+    margin-left: 6px;
+    color: var(--oc-disabled-foreground);
+    font-weight: var(--oc-font-weight-subtle);
+  }
+
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: var(--oc-spacing-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-spacing-2);
+  width: 100%;
+  padding: 10px 18px;
+  border: var(--oc-container-border-width) solid var(--oc-border);
+  border-radius: var(--oc-containers-radius-level-3);
+  background: var(--oc-card);
+  color: var(--oc-primary);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    border-color var(--oc-motion-duration-micro) var(--oc-motion-easing-standard),
+    background-color var(--oc-motion-duration-micro) var(--oc-motion-easing-standard);
+
+  &:hover {
+    border-color: var(--oc-border-interactive-hover);
+    background: var(--oc-item-hover);
+  }
+
+  &:active {
+    background: var(--oc-item-active);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--oc-border-focus);
+    outline-offset: 2px;
+  }
+}
+
+.card-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 13px;
+}
+
+.name {
+  font-size: var(--oc-font-size-md);
+  font-weight: 500;
+}
+
+.summary {
+  color: var(--oc-muted-foreground);
+  font-size: var(--oc-font-size-sm);
+  line-height: var(--oc-line-height-snug);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--oc-spacing-3);
+  color: var(--oc-muted-foreground);
+  font-size: var(--oc-font-size-xs);
+}
+
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

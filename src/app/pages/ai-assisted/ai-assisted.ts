@@ -60,6 +60,7 @@ import { initials, SIGNED_IN_USER, SUBSIDIARIES, subsidiaryName } from '../../da
 import { PROCESSING_ACTIVITIES } from '../../data/processing-activities';
 import { runRopaChecks, type CheckRecord, type CheckSeverity, type RopaCheckReport } from '../../data/ropa-check';
 import { ActivatedRoute } from '@angular/router';
+import { AuthoringHistory, type AuthoringSession } from '../../data/authoring-history';
 import { pickVariant, SCENARIOS } from '../../data/demo-samples';
 import {
   canView,
@@ -92,6 +93,7 @@ import {
 } from '../../data/skill-questions';
 import { ROLE_HELP, ROLE_LABELS, type DraftField, type FieldMeta, type ProcessingRole, type Relationship } from '../../data/types';
 import { PageHeader } from '../../shell/page-header';
+import { AiStart, type StartRequest } from './start/ai-start';
 
 // AI Assisted RoPA Creation: a conversation with the OneCore AI assistant,
 // with a live draft beside it, that follows the ropa-authoring skill's
@@ -188,21 +190,6 @@ interface Reply {
   after?: () => void;
 }
 
-interface Suggestion {
-  text: string;
-  /** true fills the composer to edit; false sends straight away (the click handler sends it). */
-  fill: boolean;
-}
-
-const STARTERS: Suggestion[] = [
-  // Each sample picks one of its variants at random, each overlapping a different existing record.
-  ...SCENARIOS.map((s) => ({ text: s.chip, fill: false })),
-  {
-    text: 'Our [team] collects [data] from [people] to [purpose], using [tools], and keeps it for [time].',
-    fill: true,
-  },
-];
-
 const START_OVER_CHIP = 'Start a new record';
 const THINKING_MS = 900;
 /** How long a changed field shows its skeleton before the new value appears. */
@@ -290,6 +277,7 @@ function listText(items: string[]): string {
     OcStreamDirective,
     OcTag,
     OcTextarea,
+    AiStart,
     PageHeader,
   ],
   templateUrl: './ai-assisted.html',
@@ -508,13 +496,14 @@ export class AiAssisted {
       !['describe', 'duplicate', 'existing'].includes(this.phase()),
   );
 
-  protected readonly suggestions = computed<Suggestion[]>(() => {
+  protected readonly suggestions = computed<string[]>(() => {
     if (this.busy()) return [];
-    if (this.phase() === 'describe') return STARTERS;
-    if (this.phase() === 'existing') return [{ text: START_OVER_CHIP, fill: false }];
+    // The samples and the template live on the start screen (AiStart).
+    if (this.phase() === 'describe') return [];
+    if (this.phase() === 'existing') return [START_OVER_CHIP];
     if (this.phase() === 'closing') {
       const q = this.pending();
-      return [...(q?.chips ?? []).map((text) => ({ text, fill: false })), { text: SKIP_CHIP, fill: false }];
+      return [...(q?.chips ?? []), SKIP_CHIP];
     }
     return [];
   });
@@ -534,27 +523,78 @@ export class AiAssisted {
 
   constructor() {
     this.#flashUpdatedBlocks();
-    const first = SIGNED_IN_USER.split(' ')[0];
-    this.#push({
-      from: 'assistant',
-      text: '',
-      source:
-        `Hi ${first}. Describe a processing activity in your own words, or attach a document about it, ` +
-        `and I'll draft its Article 30 record using the ropa-authoring skill.\n\n` +
-        `Every value I fill in quotes your text, I run the skill's checks as we go, and I'll ask about ` +
-        `anything that's missing or needs confirming. Watch the draft and its checks build on the right.`,
-    });
+    this.#keepHistory();
     this.#initial = this.#snapshot();
 
     // Started from an existing record (Processing activities → Create variation with AI).
     const from = Number(this.#route.snapshot.queryParamMap.get('from'));
     const source = from ? profile(from) : undefined;
     if (source && canView(source)) {
+      this.view.set('chat');
       afterNextRender(() => this.#startFrom(source.id), { injector: this.#injector });
     }
   }
 
   #initial!: Snapshot;
+
+  // ---- Start screen and History -------------------------------------------------
+
+  /** The start screen (AiStart) until the user sends something, then the conversation beside the draft. */
+  protected readonly view = signal<'start' | 'chat'>('start');
+  protected readonly sessions = inject(AuthoringHistory).sessions;
+  readonly #history = inject(AuthoringHistory);
+  /** The History entry this conversation updates. */
+  #session: AuthoringSession | null = null;
+
+  protected begin(req: StartRequest): void {
+    this.view.set('chat');
+    const doc = req.files.length > 0;
+    this.#session = req.session ?? {
+      id: crypto.randomUUID(),
+      name: '',
+      summary: '',
+      text: '',
+      source: doc ? 'document' : 'prompt',
+      createdBy: SIGNED_IN_USER,
+      createdAt: new Date().toISOString().slice(0, 10),
+      completeness: 0,
+    };
+    if (req.session) this.name.set(req.session.name);
+    this.onSend(req.text, req.files);
+  }
+
+  /** Back to the start screen with an empty draft. */
+  protected newSession(): void {
+    this.#abort?.abort();
+    this.#restore(this.#initial);
+    this.#fromRecord = null;
+    this.#session = null;
+    this.turns.set([]);
+    this.sent.set(null);
+    this.view.set('start');
+  }
+
+  /** Keep this conversation's History entry current: its name, summary and completeness. */
+  #keepHistory(): void {
+    effect(() => {
+      // view() is read so a new session (start → chat) re-runs this.
+      const session = this.view() === 'chat' ? this.#session : null;
+      if (!session || !this.started()) return;
+      const description = this.description();
+      const summary = description.split(/(?<=[.!?])\s+/)[0]?.slice(0, 160) ?? '';
+      const next: AuthoringSession = {
+        ...session,
+        name: this.name().trim() || session.name || summary.split(/\s+/).slice(0, 6).join(' '),
+        summary: session.summary || summary,
+        text: session.text || description,
+        completeness: this.report().completeness,
+      };
+      untracked(() => {
+        this.#session = next;
+        this.#history.save(next);
+      });
+    });
+  }
 
   /** Draft from an existing record: the user turn names it; the record's content is the description. */
   #startFrom(id: number): void {
@@ -565,11 +605,9 @@ export class AiAssisted {
     this.#reply(describeProfile(source), []);
   }
 
-  /** After "Use existing record": clear the draft and start again. */
+  /** After "Use existing record", this conversation is over. */
   #startOver(): Reply {
-    this.#restore(this.#initial);
-    this.#fromRecord = null;
-    return { text: 'Describe the next processing activity, attach a document about it, or pick a sample.' };
+    return { text: `Nothing was created here. Select ${START_OVER_CHIP} to describe another processing activity.` };
   }
 
   protected isUpdating(key: string): boolean {
@@ -609,10 +647,10 @@ export class AiAssisted {
 
   // ---- Conversation ----------------------------------------------------------
 
-  protected onSend(prompt: string): void {
+  protected onSend(prompt: string, files = this.files()): void {
     // Read attachments synchronously: the tray clears once the send succeeds (AST-09).
-    const files = this.files();
     if (this.busy()) return;
+    if (prompt === START_OVER_CHIP) return this.newSession();
     const scenario = SCENARIOS.find((s) => s.chip === prompt);
     const sample = scenario && pickVariant(scenario);
     const text = sample?.text ?? prompt;
