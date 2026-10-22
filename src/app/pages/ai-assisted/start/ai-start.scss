@@ -52,17 +52,19 @@
   background: var(--oc-secondary-hover);
   transition:
     border-color var(--oc-motion-duration-micro) var(--oc-motion-easing-standard),
-    background-color var(--oc-motion-duration-micro) var(--oc-motion-easing-standard);
+    background-color var(--oc-motion-duration-micro) var(--oc-motion-easing-standard),
+    box-shadow var(--oc-motion-duration-micro) var(--oc-motion-easing-standard);
 
   &:hover {
     border-color: var(--oc-border);
   }
 
-  // Typing: the field lifts to white with the focus border.
+  // Typing: the field lifts to white with the focus border and a shadow (0 12px 24px, black at 14%).
   &.focused,
   &.listening {
     border-color: var(--oc-border-focus);
     background: var(--oc-input);
+    box-shadow: var(--oc-shadow-floating);
   }
 }
 
