@@ -559,7 +559,8 @@ export class AiAssisted {
       createdAt: new Date().toISOString().slice(0, 10),
       completeness: 0,
     };
-    if (req.session) this.name.set(req.session.name);
+    const name = req.session?.name ?? req.name;
+    if (name) this.name.set(name);
     this.onSend(req.text, req.files);
   }
 

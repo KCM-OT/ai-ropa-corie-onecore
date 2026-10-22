@@ -68,17 +68,24 @@
 
 .prompt-row {
   display: flex;
+  // Icons stay at the top as the field grows; the text's first line sits level with them.
   align-items: flex-start;
   gap: var(--oc-spacing-3);
-  min-height: 56px;
+  // At least 58px tall overall, including the field's border; grows with the text.
+  box-sizing: border-box;
+  min-height: calc(58px - 2 * var(--oc-container-border-width));
   padding: var(--oc-spacing-3) var(--oc-spacing-3) var(--oc-spacing-3) var(--oc-spacing-6);
 }
 
 textarea {
   flex: 1;
   min-width: 0;
+  // One line to start; the component grows it with the text, up to max-height, then it scrolls.
+  height: 1lh;
   max-height: 200px;
-  padding: 6px 0 0;
+  margin-top: calc((32px - 1lh) / 2);
+  padding: 0;
+  overflow-y: auto;
   border: 0;
   outline: 0;
   resize: none;
@@ -129,12 +136,18 @@ textarea {
     cursor: not-allowed;
   }
 
+  // Send: a dark circle (#080916) with a white icon.
   &.send {
-    background: var(--oc-brand);
-    color: var(--oc-brand-foreground, var(--oc-primary));
+    border-radius: 50%;
+    background: var(--oc-foreground);
+    color: var(--oc-primary-foreground);
 
-    &:hover {
-      background: var(--oc-border-interactive-hover);
+    &:hover:not(:disabled) {
+      background: var(--oc-primary);
+    }
+
+    &:active:not(:disabled) {
+      background: var(--oc-muted);
     }
   }
 }

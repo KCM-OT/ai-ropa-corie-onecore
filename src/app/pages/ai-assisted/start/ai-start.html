@@ -73,15 +73,17 @@
       {{ fileError() }}
     } @else if (listening()) {
       Listening… Select the microphone again to stop.
-    } @else if (focused() && !text()) {
-      Press Tab to use the template, or Enter to send.
+    } @else if (canSend()) {
+      Edit it if you like, then select Send or press Enter to start drafting.
+    } @else if (focused()) {
+      Press Tab to use the template.
     }
   </p>
 
   <!-- Sample prompts -->
   <div class="samples" role="group" aria-label="Sample prompts">
     @for (s of samples; track s) {
-      <button type="button" class="pill" (click)="sendSample(s)">{{ s }}</button>
+      <button type="button" class="pill" (click)="useSample(s)">{{ s }}</button>
     }
   </div>
 

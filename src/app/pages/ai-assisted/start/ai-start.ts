@@ -4,14 +4,16 @@ import { OcBadge } from '@onetrust/onecore/badge';
 import { OcIcon } from '@onetrust/onecore/icon';
 import { OcTag } from '@onetrust/onecore/tag';
 import type { AuthoringSession } from '../../../data/authoring-history';
-import { SCENARIOS } from '../../../data/demo-samples';
+import { pickVariant, SCENARIOS } from '../../../data/demo-samples';
 import { initials } from '../../../data/org';
 
 /** What the start screen hands to the conversation. */
 export interface StartRequest {
-  /** The user's description, or a sample chip's label (the page picks a variant). */
+  /** The user's description, possibly a sample's text they picked and edited. */
   text: string;
   files: File[];
+  /** The record name a sample suggests, when the text came from one. */
+  name?: string;
   /** Set when the user opened a session from History. */
   session?: AuthoringSession;
 }
@@ -42,7 +44,9 @@ const SpeechRecognitionImpl: (new () => Recognition) | undefined =
 /**
  * AI Assisted RoPA Creation's first screen (Figma: Main-AI-Prompt): title,
  * the AI input, sample prompts, and the history of earlier sessions.
- * Sending anything here opens the conversation beside the live draft.
+ * Nothing leaves this screen until the user sends from the input (Send, or
+ * Enter); a sample only fills the input. Sending opens the conversation
+ * beside the live draft.
  */
 @Component({
   selector: 'app-ai-start',
@@ -62,6 +66,8 @@ export class AiStart implements OnDestroy {
   protected readonly text = signal('');
   protected readonly files = signal<File[]>([]);
   protected readonly fileError = signal('');
+  /** The record name of the sample in the input, if the text came from one. */
+  readonly #sampleName = signal<string | undefined>(undefined);
   protected readonly focused = signal(false);
   protected readonly listening = signal(false);
   protected readonly voiceSupported = Boolean(SpeechRecognitionImpl);
@@ -71,6 +77,7 @@ export class AiStart implements OnDestroy {
 
   protected onInput(value: string): void {
     this.text.set(value);
+    if (!value.trim()) this.#sampleName.set(undefined);
     this.#autosize();
   }
 
@@ -97,11 +104,20 @@ export class AiStart implements OnDestroy {
   protected send(): void {
     if (!this.canSend()) return;
     this.#stopListening();
-    this.begin.emit({ text: this.text().trim(), files: this.files() });
+    this.begin.emit({ text: this.text().trim(), files: this.files(), name: this.#sampleName() });
   }
 
-  protected sendSample(chip: string): void {
-    this.begin.emit({ text: chip, files: [] });
+  /** Put one of the scenario's variants (picked at random) in the input, ready to edit or send. */
+  protected useSample(chip: string): void {
+    const scenario = SCENARIOS.find((s) => s.chip === chip);
+    if (!scenario) return;
+    const sample = pickVariant(scenario);
+    const el = this.textarea().nativeElement;
+    el.value = sample.text;
+    this.onInput(sample.text);
+    this.#sampleName.set(sample.name);
+    el.focus();
+    el.setSelectionRange(sample.text.length, sample.text.length);
   }
 
   protected open(session: AuthoringSession): void {
@@ -171,10 +187,11 @@ export class AiStart implements OnDestroy {
     this.#stopListening();
   }
 
+  /** Fit the field to its text: one line at least, max-height at most. */
   #autosize(): void {
     const el = this.textarea().nativeElement;
-    el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight}px`;
+    el.style.height = '';
+    if (el.scrollHeight > el.clientHeight) el.style.height = `${el.scrollHeight}px`;
   }
 
   // ---- History ----
