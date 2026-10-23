@@ -221,7 +221,7 @@ export function profile(id: number): RecordProfile | undefined {
 // ---- Permissions (prototype) ----
 
 /**
- * The signed-in user's view scope: every group company except APAC. The
+ * The signed-in user's view scope: every group entity except APAC. The
  * duplicate check only ever compares against, and only ever reveals, records
  * in this scope.
  */

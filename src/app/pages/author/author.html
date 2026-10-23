@@ -47,7 +47,7 @@
                 <label oc-label>Owning entity</label>
                 <oc-select
                   name="owningEntity"
-                  placeholder="Select a company"
+                  placeholder="Select a group entity"
                   required
                   [displayWith]="subsidiaryLabel"
                   [ngModel]="subsidiaryId()"
@@ -57,8 +57,8 @@
                     <oc-select-option [value]="s.id">{{ s.name }}</oc-select-option>
                   }
                 </oc-select>
-                <p oc-description>The group company that owns this activity.</p>
-                <p oc-error validator="required">Choose the company that owns this activity.</p>
+                <p oc-description>The group entity that owns this activity.</p>
+                <p oc-error validator="required">Choose the group entity that owns this activity.</p>
               </oc-form-field>
             </div>
 

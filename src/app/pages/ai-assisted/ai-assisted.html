@@ -86,10 +86,10 @@
             </ng-template>
 
             <ng-template ocAssistantStep>
-              <p ocAssistantStepTitle class="step-title">Which group company owns this activity?</p>
+              <p ocAssistantStepTitle class="step-title">Which group entity owns this activity?</p>
               <oc-select
                 aria-label="Owning entity"
-                placeholder="Select a company"
+                placeholder="Select a group entity"
                 [displayWith]="subsidiaryLabel"
                 [ngModel]="subsidiaryId()"
                 (ngModelChange)="subsidiaryId.set($event)"
@@ -107,7 +107,7 @@
 
             <ng-template ocAssistantStep>
               <p ocAssistantStepTitle class="step-title">
-                What role does the owning company play in this activity?
+                What role does the group entity play in this activity?
               </p>
               @if (roleCue(); as cue) {
                 <p class="step-cue">

@@ -44,7 +44,7 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
   a skeleton on any block (name, entity, role, field) whose value changes, for `UPDATE_MS`.
 - **Duplicate check** (`data/duplicates.ts`): after the description, an attached document, or a record
   picked from Processing activities (row menu → Create variation with AI, `?from=<id>`), the draft is
-  compared with the records the user can view (`canView`: every company except APAC in this
+  compared with the records the user can view (`canView`: every group entity except APAC in this
   prototype). A likely duplicate shows in OneCore's caution yellow: the matched record, a rationale and
   the overlapping fields in the panel, and a card in the conversation with Use existing record,
   Create as local variation with inheritance, or Dismiss duplicate flag. Nothing is created, linked or

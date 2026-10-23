@@ -817,7 +817,7 @@ export class AiAssisted {
           text:
             extracted +
             `I checked the processing activities you can view and found no likely duplicates.\n\n` +
-            "Next I need the record's name, the group company that owns it, and its role, because the role decides " +
+            "Next I need the record's name, the group entity that owns it, and its role, because the role decides " +
             'which Article 30 fields apply.',
           after: () => this.openChain(),
         };
@@ -923,7 +923,7 @@ export class AiAssisted {
       }
       case 'entity': {
         const match = SUBSIDIARIES.find((s) => s.name === answer) ?? SUBSIDIARIES.find((s) => s.name.toLowerCase().includes(answer.toLowerCase()));
-        if (!match) return `I couldn't match "${answer}" to a group company, so I've left the owning entity as it is.`;
+        if (!match) return `I couldn't match "${answer}" to a group entity, so I've left the owning entity as it is.`;
         this.subsidiaryId.set(match.id);
         return `Got it. ${match.name.replace(/\.$/, '')} owns this record.`;
       }
@@ -1036,7 +1036,7 @@ export class AiAssisted {
     this.duplicateDecision.set({ action, record: { id: rec.id, name: rec.name } });
     this.duplicateOpen.set(false);
     const details =
-      "Next I need the record's name, the group company that owns it, and its role, because the role decides " +
+      "Next I need the record's name, the group entity that owns it, and its role, because the role decides " +
       'which Article 30 fields apply.';
 
     switch (action) {

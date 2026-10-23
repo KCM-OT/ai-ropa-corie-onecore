@@ -46,7 +46,8 @@ example: *"Do you decide why this data is used, or do you handle it for a client
 instructions?"* If one description covers more than one role (for example, a SaaS company's own CRM
 plus the platform it runs for clients), split it into separate records.
 
-**Owning entity.** Ask which company in the group owns the activity, and match it to a
+**Owning entity.** Ask which group entity owns the activity, for example: *"Which group entity
+owns this activity?"* Refer to it as the "group entity", not the "group company". Match it to a
 subsidiary in the inventory's `subsidiaries` list. Prefer a legal entity over a regional grouping,
 because controllers and processors are legal entities. Don't guess the entity.
 
