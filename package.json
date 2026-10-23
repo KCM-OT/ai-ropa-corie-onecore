@@ -8,9 +8,10 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "onecore": "onecore",
-    "deploy:preview": "vercel build && vercel deploy --prebuilt",
-    "deploy": "vercel build --prod && vercel deploy --prebuilt --prod",
-    "skill:parity": "node scripts/skill-parity.mjs"
+    "deploy:preview": "npm run skill:upstream && vercel build && vercel deploy --prebuilt",
+    "deploy": "npm run skill:upstream && vercel build --prod && vercel deploy --prebuilt --prod",
+    "skill:parity": "node scripts/skill-parity.mjs",
+    "skill:upstream": "node scripts/skill-upstream.mjs"
   },
   "prettier": {
     "printWidth": 100,

@@ -19,6 +19,12 @@ Nexus is reachable, then upload with `vercel deploy --prebuilt`. Vercel project:
 onetrustpmux-v0/ai-ropa-corie-onecore. Pushing to GitHub does not deploy. `vercel.json` rewrites
 every path to `index.html` so deep links work.
 
+Both deploy scripts first run `npm run skill:upstream`, which compares the vendored skill with the
+upstream repo's main branch (read from its `UPSTREAM.md`, fetched with your git credentials) and
+stops the deploy if the copy is behind, listing the changed files and upstream commits.
+`SKILL_UPSTREAM_CHECK=warn npm run deploy` deploys anyway with a warning; if upstream can't be
+reached, the check warns and the deploy carries on.
+
 ## Screens
 
 Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data and flow):
@@ -90,7 +96,9 @@ Shared table styles (`.data-table`) are in `src/styles.scss`. Scroll containers 
 ## RoPA content: the ropa-authoring skill
 
 The skill is vendored at `.claude/skills/ropa-authoring` (see its `UPSTREAM.md`). The app reads
-its inventory and posture config straight from `assets/`.
+its inventory and posture config straight from `assets/`. It doesn't load the skill at runtime, so
+upstream changes arrive only when the folder is copied again; `npm run skill:upstream` says when
+that's due.
 
 - `data/ropa-check.ts` is the skill's checks (`scripts/ropa_check.py`) in TypeScript, copied from
   the upstream Solera app's port. The Python script is the source of truth. After changing either,
