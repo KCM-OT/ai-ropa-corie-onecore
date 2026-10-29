@@ -41,9 +41,11 @@ Rules are evaluated in order, and the first match wins:
 Certification is required at each review (`requireCertification: true`).
 
 ## Processor records
-The same rules run for processor records, as in the prototype. The one difference is that each
-required assessment is given an **owner** (see `processor-mode.md`). For example, a PIA/DPIA is the
-controller's, with the processor assisting under Art. 28(3)(f).
+The same rules run for processor records, with two differences (see `processor-mode.md`):
+- `legitimateInterests` never fires, because a processor has no lawful basis of its own. This
+  differs from the prototype's `lib/posture.ts`, which still applies it to processor records.
+- Each required assessment is given an **owner**. For example, a PIA/DPIA is the controller's,
+  with the processor assisting under Art. 28(3)(f).
 
 ## Joint-controller records
 Evaluated exactly as controller records. The prototype's posture rules don't look at `role` either.

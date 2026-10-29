@@ -360,9 +360,9 @@ def evaluate_condition(pa, key, pdcs):
     if key == "internationalTransfer":
         return is_transferring(pa.get("internationalTransfers"))
     if key == "legitimateInterests":
-        # As in lib/posture.ts, this applies to every role. For processors the
-        # resulting LIA is owned by the controller (see PROCESSOR_ASSESSMENT_OWNER).
-        return pa.get("legalBasis") == "Legitimate interests"
+        # A processor has no lawful basis of its own: the Art. 6(1)(f) balancing
+        # test is the controller's (Art. 30(2) has no legal basis field).
+        return not is_processor(pa) and pa.get("legalBasis") == "Legitimate interests"
     if key == "automatedDecisions":
         return has_any(corp, AI_KEYWORDS)
     if key == "largeScale":

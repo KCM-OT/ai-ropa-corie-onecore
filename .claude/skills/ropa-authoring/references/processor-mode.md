@@ -123,10 +123,10 @@ Apply the same confidence levels and no-fabrication rules as `extraction-rules.m
 - AI keywords: confirm whether the service supports decisions about individuals (Art. 22)
 
 ## Posture in processor mode
-The same risk conditions and cadence rules apply as for controllers, as in the prototype. Each
-required assessment gets an **owner** (same wording as the prototype's `PROCESSOR_ASSESSMENT_OWNER`).
-If a processor record does carry "Legitimate interests" as its legal basis, the resulting LIA is
-owned by the controller:
+The same risk conditions and cadence rules apply as for controllers, except that
+`legitimateInterests` never fires: a processor has no lawful basis of its own, and the Art. 6(1)(f)
+balancing test is the controller's. Each required assessment gets an **owner** (same wording as the
+prototype's `PROCESSOR_ASSESSMENT_OWNER`):
 
 | Assessment | Owner |
 |---|---|

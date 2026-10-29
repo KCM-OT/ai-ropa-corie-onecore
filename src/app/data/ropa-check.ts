@@ -453,9 +453,9 @@ function evaluateCondition(pa: CheckRecord, key: ConditionKey, pdcs: PersonalDat
     case 'internationalTransfer':
       return isTransferring(pa.internationalTransfers)
     case 'legitimateInterests':
-      // As in lib/posture.ts, this applies to every role. For processors the
-      // resulting LIA is owned by the controller (see PROCESSOR_ASSESSMENT_OWNER).
-      return pa.legalBasis === 'Legitimate interests'
+      // A processor has no lawful basis of its own: the Art. 6(1)(f) balancing
+      // test is the controller's (Art. 30(2) has no legal basis field).
+      return !isProcessor(pa) && pa.legalBasis === 'Legitimate interests'
     case 'automatedDecisions':
       return hasAny(corp, AI_KEYWORDS)
     case 'largeScale':
