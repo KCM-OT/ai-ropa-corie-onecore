@@ -1,11 +1,11 @@
 import { computed, Injectable, signal } from '@angular/core';
 import { SIGNED_IN_USER } from './org';
 
-// The History list on the AI Assisted RoPA Creation start screen: earlier
-// authoring sessions, newest first. Three examples ship with the prototype;
-// sessions started in this browser are added and kept up to date in
-// localStorage. Opening one starts the assistant again from its description
-// (the conversation itself isn't stored).
+// The Pending list on the AI Assisted RoPA Creation start screen: authoring
+// sessions that haven't been sent to Data Mapping yet, most urgent first.
+// Examples ship with the prototype; sessions started in this browser are added
+// and kept up to date in localStorage. Opening one starts the assistant again
+// from its description (the conversation itself isn't stored).
 
 export interface AuthoringSession {
   id: string;
@@ -19,20 +19,58 @@ export interface AuthoringSession {
   createdAt: string; // ISO date
   /** The checker's completeness when the session was last updated. */
   completeness: number;
+  /** Follow-up questions still open when the session was last updated. */
+  openQuestions: number;
+  /** When the record should be finished (ISO date). */
+  dueAt: string;
+  /** Sent to Data Mapping, or resolved by using an existing record: no longer pending. */
+  done?: boolean;
 }
 
 const KEY = 'ai-ropa-onecore-history-v1';
 
+/** Prototype rule: a new session is due two weeks after it starts. */
+export const DUE_AFTER_DAYS = 14;
+
+/** Today plus `days`, as an ISO date (YYYY-MM-DD) in local time. */
+export function isoDaysFromToday(days: number, from = new Date()): string {
+  const d = new Date(from.getFullYear(), from.getMonth(), from.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** Whole days from today until an ISO date; negative when it has passed. */
+export function daysUntil(iso: string, today = new Date()): number {
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+  const due = Date.UTC(y, m - 1, d);
+  const now = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  return Math.round((due - now) / 86_400_000);
+}
+
+// Due dates are relative to today so the examples always show the same badges.
 const SEEDED: AuthoringSession[] = [
   {
-    id: 'seed-dealer-hosting',
-    name: 'Dealer management system hosting',
-    summary: 'Hosting the dealer management system for dealership clients from our US branch.',
-    text: `Solera US Operations hosts the dealer management system on behalf of our clients, following their instructions. Clients: Northwind Motors (privacy@northwind.example); Contoso Auto Group (dpo@contoso.example). Services: hosting, backups and support for the dealer management system. Dealer customers' names, postal addresses, phone numbers and payment card data are stored on Amazon Web Services in the United States. Our support team in India can access the data under standard contractual clauses. Access uses SSO through Okta and MFA, and all data is encrypted at rest and in transit. Each client signs our DPA v2.1 under Art. 28.`,
+    id: 'seed-feedback-analytics',
+    name: 'Customer Feedback Analytics Rollout',
+    summary: 'Rolling out AI sentiment scoring of customer survey and support feedback.',
+    text: `Our customer experience team at Solera UK is rolling out a feedback analytics tool. It collects customers' survey responses and support ticket comments from Zendesk and uses AI to score sentiment and flag unhappy customers for follow-up.`,
     source: 'document',
     createdBy: SIGNED_IN_USER,
-    createdAt: '2026-10-12',
-    completeness: 100,
+    createdAt: isoDaysFromToday(-19),
+    completeness: 38,
+    openQuestions: 12,
+    dueAt: isoDaysFromToday(-5),
+  },
+  {
+    id: 'seed-vendor-ai',
+    name: 'Vendor AI assessment',
+    summary: "Using an AI service to assess suppliers' risk from their contact and contract details.",
+    text: `Our procurement team at Solera Group uses an AI service in Salesforce to assess supplier risk. It reads suppliers' contact names, email addresses and contract details, and scores each supplier before onboarding. The legal basis is legitimate interests. Retention: 3 years after the contract ends. Access uses SSO.`,
+    source: 'prompt',
+    createdBy: SIGNED_IN_USER,
+    createdAt: isoDaysFromToday(-11),
+    completeness: 77,
+    openQuestions: 2,
+    dueAt: isoDaysFromToday(3),
   },
   {
     id: 'seed-volunteers',
@@ -41,25 +79,35 @@ const SEEDED: AuthoringSession[] = [
     text: `Our events team asks employees to volunteer for company events and conferences, and keeps a list of who signed up.`,
     source: 'document',
     createdBy: SIGNED_IN_USER,
-    createdAt: '2026-09-23',
+    createdAt: isoDaysFromToday(-6),
     completeness: 25,
+    openQuestions: 9,
+    dueAt: isoDaysFromToday(8),
   },
   {
     id: 'seed-marketing-outreach',
     name: 'AI driven marketing outreach',
     summary: 'An AI driven initiative to reach more prospects for the Ohio branch.',
     text: `Our marketing team at Solera North America uses AI to score prospects in Salesforce and send personalised emails to reach more people in Ohio. We collect prospects' names, email addresses and phone numbers. Data subjects: prospects. The legal basis is consent.`,
-    source: 'document',
+    source: 'prompt',
     createdBy: SIGNED_IN_USER,
-    createdAt: '2026-09-05',
+    createdAt: isoDaysFromToday(-2),
     completeness: 60,
+    openQuestions: 5,
+    dueAt: isoDaysFromToday(12),
   },
 ];
 
 function load(): AuthoringSession[] {
   try {
     const raw = window.localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as AuthoringSession[]) : [];
+    const saved = raw ? (JSON.parse(raw) as Partial<AuthoringSession>[]) : [];
+    // Sessions saved before due dates and question counts existed.
+    return saved.map((s) => ({
+      openQuestions: 0,
+      dueAt: isoDaysFromToday(DUE_AFTER_DAYS, new Date(s.createdAt ?? Date.now())),
+      ...s,
+    })) as AuthoringSession[];
   } catch {
     return [];
   }
@@ -69,11 +117,17 @@ function load(): AuthoringSession[] {
 export class AuthoringHistory {
   readonly #saved = signal<AuthoringSession[]>(load());
 
-  /** Sessions from this browser, then the examples, newest first. */
-  readonly sessions = computed(() =>
-    [...this.#saved(), ...SEEDED.filter((s) => !this.#saved().some((x) => x.id === s.id))].sort((a, b) =>
-      b.createdAt.localeCompare(a.createdAt),
-    ),
+  /** Every session: this browser's, then the examples it hasn't replaced. */
+  readonly sessions = computed(() => [
+    ...this.#saved(),
+    ...SEEDED.filter((s) => !this.#saved().some((x) => x.id === s.id)),
+  ]);
+
+  /** Sessions not yet sent or resolved, soonest due first. */
+  readonly pending = computed(() =>
+    this.sessions()
+      .filter((s) => !s.done)
+      .sort((a, b) => a.dueAt.localeCompare(b.dueAt) || b.createdAt.localeCompare(a.createdAt)),
   );
 
   /** Add a session, or update it if it's already there. */

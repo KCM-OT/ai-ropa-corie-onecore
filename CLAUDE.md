@@ -35,10 +35,13 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
 - `/pending-inventory`: pending records plus AI drafts (from `DraftsStore`, kept in localStorage).
 - `/ai-assisted-ropa`: AI Assisted RoPA Creation (prototype-only, top of the sidebar and in the
   Add processing activity menu). It opens on a start screen (`pages/ai-assisted/start/`, Figma
-  Main-AI-Prompt): title, an AI input (attach a .txt/.md/.csv, dictate where the browser supports
-  speech recognition, Tab fills the template prompt, Enter sends), the sample chips, and History
-  (`data/authoring-history.ts`: three examples plus sessions started in this browser, in
-  localStorage; opening one drafts again from its description). Sending anything switches to a
+  node 2241:5516) built from OneCore parts: an `oc-assistant-composer` in a card (attach a
+  .txt/.md/.csv, Enter or Send sends; the composer needs some text), `oc-assistant-suggestion`
+  sample chips (they fill the composer with a random variant and never send), and Pending
+  (`data/authoring-history.ts`: example sessions plus those started in this browser, in
+  localStorage, soonest due first, each with open questions and a due date two weeks after it
+  starts; sent or "use existing" sessions leave the list; View report drafts again from the
+  session's description). Sending anything switches to a
   OneCore `oc-assistant-thread` conversation beside a live draft panel that follows the
   ropa-authoring skill's workflow (SKILL.md steps 1–6): describe → `oc-assistant-steps` chain
   for name, owning entity and role (pre-selected from the description's role cues) → follow-up

@@ -230,10 +230,6 @@ $row-inset: ($rail-width - $icon-size) * 0.5;
   font-size: var(--oc-font-size-md);
 }
 
-.org-switch {
-  max-width: 200px;
-}
-
 .main {
   position: relative; // contain visually-hidden absolute text so it can't overflow the page
   display: flex;

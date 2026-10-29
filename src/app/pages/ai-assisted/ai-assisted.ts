@@ -60,7 +60,7 @@ import { initials, SIGNED_IN_USER, SUBSIDIARIES, subsidiaryName } from '../../da
 import { PROCESSING_ACTIVITIES } from '../../data/processing-activities';
 import { runRopaChecks, type CheckRecord, type CheckSeverity, type RopaCheckReport } from '../../data/ropa-check';
 import { ActivatedRoute } from '@angular/router';
-import { AuthoringHistory, type AuthoringSession } from '../../data/authoring-history';
+import { AuthoringHistory, DUE_AFTER_DAYS, isoDaysFromToday, type AuthoringSession } from '../../data/authoring-history';
 import { pickVariant, SCENARIOS } from '../../data/demo-samples';
 import {
   canView,
@@ -541,9 +541,9 @@ export class AiAssisted {
 
   /** The start screen (AiStart) until the user sends something, then the conversation beside the draft. */
   protected readonly view = signal<'start' | 'chat'>('start');
-  protected readonly sessions = inject(AuthoringHistory).sessions;
+  protected readonly pendingSessions = inject(AuthoringHistory).pending;
   readonly #history = inject(AuthoringHistory);
-  /** The History entry this conversation updates. */
+  /** The Pending entry this conversation updates. */
   #session: AuthoringSession | null = null;
 
   protected begin(req: StartRequest): void {
@@ -556,8 +556,10 @@ export class AiAssisted {
       text: '',
       source: doc ? 'document' : 'prompt',
       createdBy: SIGNED_IN_USER,
-      createdAt: new Date().toISOString().slice(0, 10),
+      createdAt: isoDaysFromToday(0),
       completeness: 0,
+      openQuestions: 0,
+      dueAt: isoDaysFromToday(DUE_AFTER_DAYS),
     };
     const name = req.session?.name ?? req.name;
     if (name) this.name.set(name);
@@ -575,7 +577,7 @@ export class AiAssisted {
     this.view.set('start');
   }
 
-  /** Keep this conversation's History entry current: its name, summary and completeness. */
+  /** Keep this conversation's Pending entry current: name, summary, completeness, open questions, done. */
   #keepHistory(): void {
     effect(() => {
       // view() is read so a new session (start → chat) re-runs this.
@@ -589,6 +591,9 @@ export class AiAssisted {
         summary: session.summary || summary,
         text: session.text || description,
         completeness: this.report().completeness,
+        openQuestions: this.questions().length,
+        // Sent to Data Mapping, or resolved by using the existing record: it leaves Pending.
+        done: this.sent() !== null || this.phase() === 'existing',
       };
       untracked(() => {
         this.#session = next;

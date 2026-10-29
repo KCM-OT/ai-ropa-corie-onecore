@@ -1,5 +1,5 @@
 @if (view() === 'start') {
-  <app-ai-start [sessions]="sessions()" (begin)="begin($event)" />
+  <app-ai-start [sessions]="pendingSessions()" (begin)="begin($event)" />
 } @else {
   <app-page-header title="AI Assisted RoPA Creation">
     <p class="crumbs">

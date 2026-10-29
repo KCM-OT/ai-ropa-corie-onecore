@@ -1,5 +1,5 @@
-// Figma: Main-AI-Prompt. Four rows: title and description, the AI input,
-// sample prompts, and History.
+// Figma "overall" (node 2241:5516): title, then the prompt area (OneCore
+// assistant composer in a card, suggestion chips under it) and the Pending list.
 
 :host {
   display: block;
@@ -13,319 +13,163 @@
   flex-direction: column;
   align-items: center;
   gap: var(--oc-spacing-6);
-  max-width: 849px;
-  margin: 0 auto;
   padding: calc(var(--oc-spacing-8) + var(--oc-spacing-2)) var(--oc-spacing-4) var(--oc-spacing-8);
 }
 
-// ---- Title and description ----
+h1 {
+  margin: 0;
+  color: var(--oc-primary);
+  font-size: var(--oc-font-size-3xl);
+  font-weight: 500;
+  line-height: var(--oc-line-height-tight);
+  text-align: center;
+}
 
-.intro {
+.main {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  text-align: center;
-
-  h1 {
-    margin: 0;
-    color: var(--oc-primary);
-    font-size: 36px;
-    font-weight: 500;
-    line-height: var(--oc-line-height-tight);
-    letter-spacing: var(--oc-letter-spacing-tight);
-  }
-
-  p {
-    margin: 0;
-    color: var(--oc-foreground);
-    font-size: var(--oc-font-size-md);
-    line-height: var(--oc-line-height-snug);
-  }
-}
-
-// ---- AI input ----
-
-.prompt {
-  width: 100%;
-  border: var(--oc-container-border-width) solid var(--oc-secondary-hover);
-  border-radius: 30px;
-  background: var(--oc-secondary-hover);
-  transition:
-    border-color var(--oc-motion-duration-micro) var(--oc-motion-easing-standard),
-    background-color var(--oc-motion-duration-micro) var(--oc-motion-easing-standard),
-    box-shadow var(--oc-motion-duration-micro) var(--oc-motion-easing-standard);
-
-  &:hover {
-    border-color: var(--oc-border);
-  }
-
-  // Typing: the field lifts to white with the focus border and a shadow (0 12px 24px, black at 14%).
-  &.focused,
-  &.listening {
-    border-color: var(--oc-border-focus);
-    background: var(--oc-input);
-    box-shadow: var(--oc-shadow-floating);
-  }
-}
-
-.prompt-row {
-  display: flex;
-  // Icons stay at the top as the field grows; the text's first line sits level with them.
-  align-items: flex-start;
-  gap: var(--oc-spacing-3);
-  // At least 58px tall overall, including the field's border; grows with the text.
-  box-sizing: border-box;
-  min-height: calc(58px - 2 * var(--oc-container-border-width));
-  padding: var(--oc-spacing-3) var(--oc-spacing-3) var(--oc-spacing-3) var(--oc-spacing-6);
-}
-
-textarea {
-  flex: 1;
-  min-width: 0;
-  // One line to start; the component grows it with the text, up to max-height, then it scrolls.
-  height: 1lh;
-  max-height: 200px;
-  margin-top: calc((32px - 1lh) / 2);
-  padding: 0;
-  overflow-y: auto;
-  border: 0;
-  outline: 0;
-  resize: none;
-  background: transparent;
-  color: var(--oc-primary);
-  font: inherit;
-  font-size: var(--oc-font-size-md);
-  line-height: var(--oc-line-height-snug);
-
-  &::placeholder {
-    color: var(--oc-muted-foreground);
-    opacity: 1;
-  }
-}
-
-// 32px icon tiles (Figma: btn_document_attachment). Hover shows the light green tile.
-.tile {
-  display: inline-flex;
-  flex-shrink: 0;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--oc-control-radius-md);
-  background: transparent;
-  color: var(--oc-primary);
-  cursor: pointer;
-  transition: background-color var(--oc-motion-duration-micro) var(--oc-motion-easing-standard);
-
-  &:hover:not(:disabled),
-  &[aria-pressed='true'] {
-    background: var(--oc-item-hover);
-  }
-
-  &:active:not(:disabled) {
-    background: var(--oc-item-active);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--oc-border-focus);
-    outline-offset: 1px;
-  }
-
-  &:disabled {
-    color: var(--oc-disabled-foreground);
-    cursor: not-allowed;
-  }
-
-  // Send: a dark circle (#080916) with a white icon.
-  &.send {
-    border-radius: 50%;
-    background: var(--oc-foreground);
-    color: var(--oc-primary-foreground);
-
-    &:hover:not(:disabled) {
-      background: var(--oc-primary);
-    }
-
-    &:active:not(:disabled) {
-      background: var(--oc-muted);
-    }
-  }
-}
-
-.mic {
-  width: 9px;
-  height: 12px;
-  fill: currentColor;
-}
-
-.listening .mic {
-  animation: pulse 1.2s var(--oc-motion-easing-standard) infinite;
-}
-
-@keyframes pulse {
-  50% {
-    opacity: 0.4;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .listening .mic {
-    animation: none;
-  }
-}
-
-.attachments {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--oc-spacing-2);
-  padding: 0 var(--oc-spacing-6) var(--oc-spacing-3);
-}
-
-.hint {
-  min-height: 1lh;
-  margin: calc(-1 * var(--oc-spacing-4)) 0 0;
-  color: var(--oc-muted-foreground);
-  font-size: var(--oc-font-size-xs);
-
-  &.error {
-    color: var(--oc-border-error);
-  }
-}
-
-// ---- Sample prompts ----
-
-.samples {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--oc-spacing-2);
-}
-
-.pill {
-  padding: 6px var(--oc-spacing-6);
-  border: var(--oc-container-border-width) solid var(--oc-border);
-  border-radius: var(--oc-control-radius-full);
-  background: var(--oc-background);
-  color: var(--oc-primary);
-  font: inherit;
-  font-size: var(--oc-font-size-md);
-  font-weight: 500;
-  line-height: var(--oc-line-height-snug);
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    border-color var(--oc-motion-duration-micro) var(--oc-motion-easing-standard),
-    background-color var(--oc-motion-duration-micro) var(--oc-motion-easing-standard);
-
-  &:hover {
-    border-color: var(--oc-border-interactive-hover);
-    background: var(--oc-item-hover);
-  }
-
-  &:active {
-    border-color: var(--oc-border-interactive-active);
-    background: var(--oc-item-active);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--oc-border-focus);
-    outline-offset: 2px;
-  }
-}
-
-// ---- History ----
-
-.history {
+  gap: calc(var(--oc-spacing-6) * 2);
   width: 100%;
-  max-width: 680px;
-  padding-top: calc(var(--oc-spacing-8) + var(--oc-spacing-2));
+  max-width: 750px;
+}
+
+// ---- Prompt area ----
+
+// The thread only relays the suggestion chips to the composer here; drop its
+// full-height chat surface.
+.start .prompt-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--oc-spacing-4);
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  background: transparent;
+}
+
+.prompt-card {
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--oc-border);
+  border-radius: 10px;
+  background: var(--oc-background);
+
+  oc-assistant-composer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--oc-spacing-2);
+    padding: var(--oc-spacing-3);
+    background: var(--oc-card);
+  }
+
+  textarea {
+    min-height: 64px;
+  }
+}
+
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--oc-spacing-2);
+}
+
+// ---- Pending ----
+
+.pending {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--oc-spacing-4);
+  width: 100%;
 
   h2 {
-    margin: 0 0 var(--oc-spacing-3);
-    color: var(--oc-primary);
+    margin: 0;
+    color: var(--oc-muted-foreground);
     font-size: var(--oc-font-size-md);
-    font-weight: 500;
-  }
-
-  .count {
-    margin-left: 6px;
-    color: var(--oc-disabled-foreground);
-    font-weight: var(--oc-font-weight-subtle);
+    font-weight: var(--oc-font-weight-default);
+    letter-spacing: var(--oc-letter-spacing-tight);
   }
 
   ul {
     display: flex;
     flex-direction: column;
-    gap: var(--oc-spacing-3);
+    gap: var(--oc-spacing-4);
+    width: 100%;
+    max-width: 544px;
     margin: 0;
     padding: 0;
     list-style: none;
   }
 }
 
-.card {
+.action-card {
+  display: block;
+}
+
+.action {
   display: flex;
   flex-direction: column;
   gap: var(--oc-spacing-2);
-  width: 100%;
-  padding: 10px 18px;
-  border: var(--oc-container-border-width) solid var(--oc-border);
-  border-radius: var(--oc-containers-radius-level-3);
-  background: var(--oc-card);
-  color: var(--oc-primary);
+  padding: var(--oc-spacing-4);
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--oc-spacing-1);
+  margin: 0;
+  color: var(--oc-muted-foreground);
+  font-size: var(--oc-font-size-xs);
+  line-height: 16px;
+}
+
+.action-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--oc-spacing-3);
+
+  h3 {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: var(--oc-foreground);
+    font-size: var(--oc-font-size-lg);
+    font-weight: var(--oc-font-weight-default);
+    line-height: var(--oc-line-height-snug);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+.action-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--oc-spacing-1);
+}
+
+// OneCore 0.7.0 has no text link; a native button styled as one.
+.text-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--oc-utility-link);
   font: inherit;
-  text-align: start;
+  font-size: var(--oc-font-size-md);
+  line-height: var(--oc-line-height-snug);
   cursor: pointer;
-  transition:
-    border-color var(--oc-motion-duration-micro) var(--oc-motion-easing-standard),
-    background-color var(--oc-motion-duration-micro) var(--oc-motion-easing-standard);
 
   &:hover {
-    border-color: var(--oc-border-interactive-hover);
-    background: var(--oc-item-hover);
-  }
-
-  &:active {
-    background: var(--oc-item-active);
+    text-decoration: underline;
   }
 
   &:focus-visible {
     outline: 2px solid var(--oc-border-focus);
     outline-offset: 2px;
+    border-radius: var(--oc-control-radius-sm);
   }
-}
-
-.card-title {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 13px;
-}
-
-.name {
-  font-size: var(--oc-font-size-md);
-  font-weight: 500;
-}
-
-.summary {
-  color: var(--oc-muted-foreground);
-  font-size: var(--oc-font-size-sm);
-  line-height: var(--oc-line-height-snug);
-}
-
-.meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--oc-spacing-3);
-  color: var(--oc-muted-foreground);
-  font-size: var(--oc-font-size-xs);
-}
-
-.meta-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
 }

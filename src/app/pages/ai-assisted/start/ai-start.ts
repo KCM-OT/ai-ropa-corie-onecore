@@ -1,11 +1,22 @@
-import { Component, computed, ElementRef, input, OnDestroy, output, signal, viewChild } from '@angular/core';
-import { OcAvatar } from '@onetrust/onecore/avatar';
+import { Component, computed, ElementRef, input, output, signal, viewChild } from '@angular/core';
+import {
+  OcAssistantActions,
+  OcAssistantAttach,
+  OcAssistantAttachmentTray,
+  OcAssistantComposer,
+  OcAssistantInput,
+  OcAssistantSubmit,
+  OcAssistantSuggestion,
+  OcAssistantThread,
+} from '@onetrust/onecore/assistant';
 import { OcBadge } from '@onetrust/onecore/badge';
+import { OcButton } from '@onetrust/onecore/button';
+import { OcCard } from '@onetrust/onecore/card';
 import { OcIcon } from '@onetrust/onecore/icon';
-import { OcTag } from '@onetrust/onecore/tag';
-import type { AuthoringSession } from '../../../data/authoring-history';
+import { OcIconButton } from '@onetrust/onecore/icon-button';
+import { OcTextarea } from '@onetrust/onecore/textarea';
+import { daysUntil, type AuthoringSession } from '../../../data/authoring-history';
 import { pickVariant, SCENARIOS } from '../../../data/demo-samples';
-import { initials } from '../../../data/org';
 
 /** What the start screen hands to the conversation. */
 export interface StartRequest {
@@ -14,107 +25,81 @@ export interface StartRequest {
   files: File[];
   /** The record name a sample suggests, when the text came from one. */
   name?: string;
-  /** Set when the user opened a session from History. */
+  /** Set when the user opened a pending session. */
   session?: AuthoringSession;
 }
 
-export const TEMPLATE_PROMPT =
-  'Our [team] collects [data] from [people] to [purpose], using [tools], and keeps it for [time].';
-
-const ACCEPT = /\.(txt|md|csv)$/i;
-const MAX_SIZE = 1_000_000;
-
-// The browser's speech recognition, where it exists (Chrome, Edge, Safari).
-type Recognition = {
-  lang: string;
-  interimResults: boolean;
-  continuous: boolean;
-  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null;
-  onend: (() => void) | null;
-  onerror: ((e: { error: string }) => void) | null;
-  start(): void;
-  stop(): void;
-};
-const SpeechRecognitionImpl: (new () => Recognition) | undefined =
-  typeof window === 'undefined'
-    ? undefined
-    : ((window as unknown as Record<string, unknown>)['SpeechRecognition'] ??
-        (window as unknown as Record<string, unknown>)['webkitSpeechRecognition']) as (new () => Recognition) | undefined;
+/** Pending cards shown before "Show more". */
+const FIRST_PENDING = 2;
+/** Due within this many days reads as a warning. */
+const DUE_SOON_DAYS = 7;
 
 /**
- * AI Assisted RoPA Creation's first screen (Figma: Main-AI-Prompt): title,
- * the AI input, sample prompts, and the history of earlier sessions.
- * Nothing leaves this screen until the user sends from the input (Send, or
- * Enter); a sample only fills the input. Sending opens the conversation
- * beside the live draft.
+ * AI Assisted RoPA Creation's first screen (Figma: "overall", node 2241:5516),
+ * built from OneCore parts: the assistant composer and suggestion chips inside
+ * an assistant thread, and the Pending list of earlier sessions as cards.
+ * Nothing leaves this screen until the user sends from the composer; a sample
+ * chip only fills it.
  */
 @Component({
   selector: 'app-ai-start',
-  imports: [OcAvatar, OcBadge, OcIcon, OcTag],
+  imports: [
+    OcAssistantActions,
+    OcAssistantAttach,
+    OcAssistantAttachmentTray,
+    OcAssistantComposer,
+    OcAssistantInput,
+    OcAssistantSubmit,
+    OcAssistantSuggestion,
+    OcAssistantThread,
+    OcBadge,
+    OcButton,
+    OcCard,
+    OcIcon,
+    OcIconButton,
+    OcTextarea,
+  ],
   templateUrl: './ai-start.html',
   styleUrl: './ai-start.scss',
 })
-export class AiStart implements OnDestroy {
+export class AiStart {
+  /** Pending sessions, soonest due first. */
   readonly sessions = input.required<AuthoringSession[]>();
   readonly begin = output<StartRequest>();
 
-  private readonly textarea = viewChild.required<ElementRef<HTMLTextAreaElement>>('prompt');
-  private readonly fileInput = viewChild.required<ElementRef<HTMLInputElement>>('file');
+  private readonly textarea = viewChild.required('prompt', { read: ElementRef<HTMLTextAreaElement> });
 
   protected readonly samples = SCENARIOS.map((s) => s.chip);
-  protected readonly template = TEMPLATE_PROMPT;
-  protected readonly text = signal('');
   protected readonly files = signal<File[]>([]);
-  protected readonly fileError = signal('');
-  /** The record name of the sample in the input, if the text came from one. */
+  /** The record name of the sample in the composer, if the text came from one. */
   readonly #sampleName = signal<string | undefined>(undefined);
-  protected readonly focused = signal(false);
-  protected readonly listening = signal(false);
-  protected readonly voiceSupported = Boolean(SpeechRecognitionImpl);
-  protected readonly canSend = computed(() => this.text().trim().length > 0 || this.files().length > 0);
-  protected readonly initials = initials;
-  #recognition: Recognition | null = null;
 
-  protected onInput(value: string): void {
-    this.text.set(value);
-    if (!value.trim()) this.#sampleName.set(undefined);
-    this.#autosize();
+  protected readonly showAll = signal(false);
+  protected readonly visible = computed(() =>
+    this.showAll() ? this.sessions() : this.sessions().slice(0, FIRST_PENDING),
+  );
+
+  /** The composer's send: Enter or the Send button, with any attached file. */
+  protected send(text: string): void {
+    this.begin.emit({ text, files: this.files(), name: this.#sampleName() });
   }
 
-  protected onKeydown(e: KeyboardEvent): void {
-    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
-      e.preventDefault();
-      this.send();
-    } else if (e.key === 'Tab' && !e.shiftKey && !this.text()) {
-      // Tab on an empty input fills in the template, ready to edit, with its first blank selected.
-      e.preventDefault();
-      this.useTemplate();
-    }
+  protected onInput(): void {
+    if (!this.textarea().nativeElement.value.trim()) this.#sampleName.set(undefined);
   }
 
-  protected useTemplate(): void {
-    const el = this.textarea().nativeElement;
-    this.onInput(TEMPLATE_PROMPT);
-    el.value = TEMPLATE_PROMPT;
-    el.focus();
-    const start = TEMPLATE_PROMPT.indexOf('[');
-    el.setSelectionRange(start, TEMPLATE_PROMPT.indexOf(']') + 1);
-  }
-
-  protected send(): void {
-    if (!this.canSend()) return;
-    this.#stopListening();
-    this.begin.emit({ text: this.text().trim(), files: this.files(), name: this.#sampleName() });
-  }
-
-  /** Put one of the scenario's variants (picked at random) in the input, ready to edit or send. */
+  /**
+   * Put one of the scenario's variants (picked at random) in the composer,
+   * ready to edit or send. The chip's own fill-on-click would insert its label,
+   * so this sets the field and raises `input`, which the composer listens to.
+   */
   protected useSample(chip: string): void {
     const scenario = SCENARIOS.find((s) => s.chip === chip);
     if (!scenario) return;
     const sample = pickVariant(scenario);
     const el = this.textarea().nativeElement;
     el.value = sample.text;
-    this.onInput(sample.text);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
     this.#sampleName.set(sample.name);
     el.focus();
     el.setSelectionRange(sample.text.length, sample.text.length);
@@ -124,85 +109,22 @@ export class AiStart implements OnDestroy {
     this.begin.emit({ text: session.text, files: [], session });
   }
 
-  // ---- Attachments ----
+  // ---- Pending cards ----
 
-  protected pickFile(): void {
-    this.fileInput().nativeElement.click();
+  protected questionsLabel(n: number): string {
+    if (n === 0) return 'Ready to send';
+    return n === 1 ? '1 question needs attention' : `${n} questions need attention`;
   }
 
-  protected onFile(list: FileList | null): void {
-    const file = list?.[0];
-    this.fileInput().nativeElement.value = '';
-    if (!file) return;
-    if (!ACCEPT.test(file.name) && !file.type.startsWith('text/')) {
-      this.fileError.set(`${file.name} isn't a text file. Attach a .txt, .md or .csv file.`);
-      return;
+  protected due(session: AuthoringSession): { label: string; color: 'destructive' | 'warning' | 'neutral' } {
+    const days = daysUntil(session.dueAt);
+    if (days < 0) {
+      const late = -days;
+      return { label: `${late} ${late === 1 ? 'day' : 'days'} overdue`, color: 'destructive' };
     }
-    if (file.size > MAX_SIZE) {
-      this.fileError.set(`${file.name} is over 1 MB.`);
-      return;
-    }
-    this.fileError.set('');
-    this.files.set([file]);
-  }
-
-  protected removeFile(): void {
-    this.files.set([]);
-    this.textarea().nativeElement.focus();
-  }
-
-  // ---- Voice input ----
-
-  protected toggleVoice(): void {
-    if (this.listening()) return this.#stopListening();
-    if (!SpeechRecognitionImpl) return;
-    const rec = new SpeechRecognitionImpl();
-    rec.lang = 'en-GB';
-    rec.interimResults = true;
-    rec.continuous = true;
-    const before = this.text() ? `${this.text().trimEnd()} ` : '';
-    rec.onresult = (e) => {
-      const heard = Array.from(e.results, (r) => r[0].transcript).join('');
-      this.onInput(before + heard);
-      this.textarea().nativeElement.value = before + heard;
-    };
-    rec.onend = () => this.listening.set(false);
-    rec.onerror = (e) => {
-      this.listening.set(false);
-      if (e.error === 'not-allowed') this.fileError.set('Allow microphone access to dictate.');
-    };
-    this.#recognition = rec;
-    this.fileError.set('');
-    this.listening.set(true);
-    rec.start();
-  }
-
-  #stopListening(): void {
-    this.#recognition?.stop();
-    this.#recognition = null;
-    this.listening.set(false);
-  }
-
-  ngOnDestroy(): void {
-    this.#stopListening();
-  }
-
-  /** Fit the field to its text: one line at least, max-height at most. */
-  #autosize(): void {
-    const el = this.textarea().nativeElement;
-    el.style.height = '';
-    if (el.scrollHeight > el.clientHeight) el.style.height = `${el.scrollHeight}px`;
-  }
-
-  // ---- History ----
-
-  protected completenessColor(n: number): 'success' | 'warning' | 'destructive' {
-    return n >= 80 ? 'success' : n >= 50 ? 'warning' : 'destructive';
-  }
-
-  /** MM/DD/YY, as in the design. */
-  protected shortDate(iso: string): string {
-    const [y, m, d] = iso.slice(0, 10).split('-');
-    return `${m}/${d}/${y.slice(2)}`;
+    if (days === 0) return { label: 'Due today', color: 'warning' };
+    if (days <= DUE_SOON_DAYS) return { label: `Due in ${days} ${days === 1 ? 'day' : 'days'}`, color: 'warning' };
+    const [y, m, d] = session.dueAt.split('-');
+    return { label: `Due ${m}/${d}/${y.slice(2)}`, color: 'neutral' };
   }
 }
