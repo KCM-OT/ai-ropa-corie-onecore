@@ -1,0 +1,573 @@
+<title>RoPA Screen Specs</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: a sticky screen index on wide screens beside one reading column; each screen is a section of annotated figures and spec tables. */
+  :root {
+    --bg: #ffffff; --surface: #f6f7f8; --fg: #080916; --muted: #5f6675; --line: #dde1e6;
+    --accent: #00805a; --accent-soft: #e6f7ef; --marker: #080916; --marker-fg: #ffffff;
+    --caution: #8a5a00; --caution-soft: #fff6e0;
+    --font-body: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d0f14; --surface: #161a21; --fg: #eef0f3; --muted: #9aa3b2; --line: #2a303a;
+      --accent: #3fd39b; --accent-soft: #10302a; --marker: #3fd39b; --marker-fg: #08110d;
+      --caution: #f2c25b; --caution-soft: #2e2510; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d0f14; --surface: #161a21; --fg: #eef0f3; --muted: #9aa3b2; --line: #2a303a;
+    --accent: #3fd39b; --accent-soft: #10302a; --marker: #3fd39b; --marker-fg: #08110d;
+    --caution: #f2c25b; --caution-soft: #2e2510; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
+  .page {
+    max-width: 1240px; margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 40px 64px;
+    display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 48px;
+  }
+  nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; display: grid; gap: 4px; font-size: 13px; }
+  nav.toc b { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  nav.toc a { color: var(--fg); text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+  nav.toc a:hover { background: var(--surface); }
+  nav.toc .sub { color: var(--muted); }
+  main { display: grid; gap: 56px; min-width: 0; }
+  h1, h2, h3 { margin: 0; text-wrap: balance; }
+  h1 { font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+  h2 { font-size: 22px; font-weight: 600; }
+  h3 { font-size: 15px; font-weight: 600; margin-top: 8px; }
+  p { margin: 0; max-width: 72ch; }
+  a { color: var(--accent); }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+  code { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+  header.top { display: grid; gap: 12px; }
+  .eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .lede { color: var(--muted); }
+  .facts { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 13px; color: var(--muted); }
+  .facts b { color: var(--fg); font-weight: 600; }
+  section.screen { display: grid; gap: 18px; min-width: 0; scroll-margin-top: 24px; }
+  .screen-head { display: grid; gap: 6px; border-top: 2px solid var(--fg); padding-top: 14px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--muted); }
+  .meta span b { color: var(--fg); font-weight: 500; }
+
+  figure { margin: 0; display: grid; gap: 10px; min-width: 0; }
+  .shot { position: relative; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--surface); }
+  .shot img { display: block; width: 100%; height: auto; }
+  .pin {
+    position: absolute; transform: translate(-50%, -50%);
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--marker); color: var(--marker-fg);
+    font: 600 12px/24px var(--font-body); text-align: center;
+    box-shadow: 0 0 0 2px var(--bg);
+  }
+  figcaption { font-size: 13px; color: var(--muted); }
+  ol.legend { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 6px 20px; font-size: 13.5px; counter-reset: pin; }
+  ol.legend li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 8px; align-items: start; counter-increment: pin; }
+  ol.legend li::before {
+    content: counter(pin); width: 22px; height: 22px; border-radius: 50%; background: var(--marker); color: var(--marker-fg);
+    font: 600 11px/22px var(--font-body); text-align: center;
+  }
+  .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+  thead th { background: var(--surface); font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+  tbody tr:last-child > * { border-bottom: 0; }
+  tbody th { font-weight: 600; }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  ul.tight { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; max-width: 80ch; }
+  .note { border-left: 3px solid var(--caution); background: var(--caution-soft); padding: 10px 14px; border-radius: 4px; font-size: 13.5px; display: grid; gap: 4px; }
+  .note b { color: var(--caution); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+  .two > div { display: grid; gap: 8px; align-content: start; min-width: 0; }
+  footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 16px; }
+
+  @media (max-width: 880px) {
+    .page { grid-template-columns: 1fr; gap: 24px; }
+    nav.toc { position: static; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+    nav.toc b { grid-column: 1 / -1; }
+    h1 { font-size: 24px; }
+    .pin { width: 18px; height: 18px; font-size: 10px; line-height: 18px; }
+  }
+</style>
+
+<div class="page">
+  <nav class="toc" aria-label="Screens">
+    <b>Screens</b>
+    <a href="#shell">App shell</a>
+    <a href="#processing-activities">Processing activities</a>
+    <a href="#pending-inventory">Pending inventory</a>
+    <a href="#author">Author with AI</a>
+    <a href="#ai-start">AI Assisted · start</a>
+    <a href="#ai-chat">AI Assisted · chat &amp; draft</a>
+    <a href="#ai-chat-duplicate" class="sub">· Duplicate check</a>
+    <a href="#ai-chat-send" class="sub">· Send to Data Mapping</a>
+    <a href="#prototype-only">Prototype stand-ins</a>
+  </nav>
+
+  <main>
+    <header class="top">
+      <span class="eyebrow">Developer handoff · AI-assisted RoPA prototype</span>
+      <h1>Screen specs</h1>
+      <p class="lede">Layout, controls, states and rules for each screen of the OneCore RoPA prototype, taken from the running build. Numbers on the screenshots match the numbered notes under them. Component details are in the <a href="https://claude.ai/artifact/G49xxQPvTi2L2kXTCQFjf7">OneCore component inventory</a>; testable behaviour is in the <a href="https://claude.ai/artifact/LD48wPnfvdoxPJN9E1Fn4B">acceptance criteria</a>.</p>
+      <div class="facts">
+        <span>Angular 21 · OneCore <b>0.7.0</b></span>
+        <span>Screenshots at <b>1440 × 900</b></span>
+        <span>Source <span class="mono">KCM-OT/ai-ropa-corie-onecore</span> @ <b>2ae6553</b></span>
+        <span>Live <a href="https://ai-ropa-corie-onecore.vercel.app">ai-ropa-corie-onecore.vercel.app</a></span>
+      </div>
+    </header>
+
+    <!-- ============ SHELL ============ -->
+    <section class="screen" id="shell" aria-labelledby="shell-title">
+      <div class="screen-head">
+        <h2 id="shell-title">App shell</h2>
+        <div class="meta"><span>Wraps <b>every route</b></span><span>Files <span class="mono">shell/app-shell.*</span>, <span class="mono">shell/nav.ts</span>, <span class="mono">shell/demo-mode.ts</span></span></div>
+        <p>Data Mapping's frame: a dark side navigation and a light top bar. Demo mode trims the navigation to the AI page for presentations.</p>
+      </div>
+      <figure>
+        <div class="shot">
+          <img src="screens/03-shell-nav-expanded.png" alt="App shell with the Inventory, Assessments and Reporting groups open and Processing activities active" width="1440" height="900" loading="lazy">
+          <span class="pin" style="left:12.8%;top:6.6%" aria-hidden="true">1</span>
+          <span class="pin" style="left:16%;top:6.5%" aria-hidden="true">2</span>
+          <span class="pin" style="left:13.5%;top:15.4%" aria-hidden="true">3</span>
+          <span class="pin" style="left:13%;top:23.6%" aria-hidden="true">4</span>
+          <span class="pin" style="left:69.5%;top:6.5%" aria-hidden="true">5</span>
+        </div>
+        <ol class="legend">
+          <li>Header row, 48px: logo (links home), then Search (no action yet) and Collapse navigation.</li>
+          <li>Collapse animates the sidebar from 256px to a 48px rail. Icons keep their x-position.</li>
+          <li>Groups start closed. Chevron rotates −90° when closed; <code>aria-expanded</code> reflects state.</li>
+          <li>Active item: <code>--oc-inverse-active</code> fill, 2px <code>--oc-brand</code> bar, brand icon, weight 500.</li>
+          <li>Top bar, 48px: tenant name, Ask Copilot, notifications, org switcher, settings, account, help. All placeholders.</li>
+        </ol>
+      </figure>
+      <div class="gallery">
+        <figure>
+          <div class="shot"><img src="screens/04-shell-nav-collapsed.png" alt="Sidebar collapsed to an icon rail" width="1440" height="900" loading="lazy"></div>
+          <figcaption>Collapsed rail. The logo becomes an Expand button; rows show a title tooltip; clicking a group expands the sidebar and opens it.</figcaption>
+        </figure>
+        <figure>
+          <div class="shot"><img src="screens/10-start.png" alt="Demo mode on: the sidebar shows only AI Assisted RoPA Creation" width="1440" height="900" loading="lazy"></div>
+          <figcaption>Demo mode on (the default): the nav shows only AI Assisted RoPA Creation, and <span class="mono">/</span> opens that page.</figcaption>
+        </figure>
+      </div>
+      <div class="two">
+        <div>
+          <h3>Layout</h3>
+          <div class="table-scroll"><table>
+            <tbody>
+              <tr><th scope="row">Sidebar</th><td>256px expanded, 48px collapsed. Background <code>--app-sidebar-bg</code> (#0a0a0a, local: OneCore has nothing this dark). Text <code>--oc-foreground-on-dark</code>, <code>--oc-font-size-sm</code>.</td></tr>
+              <tr><th scope="row">Motion</th><td>Width: <code>--oc-motion-duration-settle</code> + <code>--oc-motion-easing-decelerate</code>. Labels fade with <code>--oc-motion-duration-micro</code>. All off under reduced motion.</td></tr>
+              <tr><th scope="row">Nav rows</th><td>40px (nested 36px), 2px apart, 18px outline icons inset 15px. Hover <code>--oc-inverse-hover</code>; focus 2px <code>--oc-brand</code> outline at −2px.</td></tr>
+              <tr><th scope="row">Module name</th><td>"Data Mapping Automation", <code>--oc-font-size-xs</code>, 60% opacity. Always visible, in and out of demo mode.</td></tr>
+              <tr><th scope="row">Footer</th><td>Demo mode <code>oc-switch</code>, on-track recoloured to <code>--oc-brand</code>. On the rail only the switch shows.</td></tr>
+              <tr><th scope="row">Top bar</th><td>48px, padding <code>0 spacing-3 0 spacing-5</code>, bottom border <code>--oc-border</code>.</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <div>
+          <h3>Rules</h3>
+          <ul class="tight">
+            <li>Routes: <span class="mono">/</span> redirects to <span class="mono">/ai-assisted-ropa</span> when demo mode is on, <span class="mono">/processing-activities</span> when off. Unknown routes show a "Not built yet" placeholder titled by the nav label.</li>
+            <li>Demo mode starts on at every page load and isn't remembered.</li>
+            <li>A closed group shows as active when the current page is one of its children.</li>
+            <li>Nav order: AI Assisted RoPA Creation, Inventory (Pending inventory, Processing activities, Assets, Entities, Vendors, Projects), Dashboard, Assessments, Risk register, Objects, Reporting, Setup, Data Mapping Automation settings.</li>
+            <li>Links set <code>aria-current="page"</code>; the logo has a 2px brand focus ring.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PROCESSING ACTIVITIES ============ -->
+    <section class="screen" id="processing-activities" aria-labelledby="pa-title">
+      <div class="screen-head">
+        <h2 id="pa-title">Processing activities</h2>
+        <div class="meta"><span>Route <b>/processing-activities</b></span><span>Title "Processing activities | Data Mapping"</span><span>Files <span class="mono">pages/processing-activities/*</span></span></div>
+        <p>The RoPA: one row per Article 30 record. Entry point to both AI authoring flows.</p>
+      </div>
+      <figure>
+        <div class="shot">
+          <img src="screens/02-add-processing-activity-menu.png" alt="Processing activities list with the Add processing activity menu open" width="1440" height="900" loading="lazy">
+          <span class="pin" style="left:34.5%;top:9%" aria-hidden="true">1</span>
+          <span class="pin" style="left:79%;top:9.6%" aria-hidden="true">2</span>
+          <span class="pin" style="left:98%;top:15%" aria-hidden="true">3</span>
+          <span class="pin" style="left:38.6%;top:19.5%" aria-hidden="true">4</span>
+          <span class="pin" style="left:66%;top:19.5%" aria-hidden="true">5</span>
+          <span class="pin" style="left:30%;top:29%" aria-hidden="true">6</span>
+          <span class="pin" style="left:24.5%;top:37.5%" aria-hidden="true">7</span>
+          <span class="pin" style="left:95%;top:34%" aria-hidden="true">8</span>
+          <span class="pin" style="left:20%;top:97%" aria-hidden="true">9</span>
+        </div>
+        <ol class="legend">
+          <li>Page header: title and description "Your record of processing activities (RoPA). Keep each record current by reviewing it on schedule."</li>
+          <li>"Add processing activity" (primary, chevron) opens a menu: Author with AI, AI Assisted RoPA Creation, Create manually (disabled).</li>
+          <li>"More actions" (ellipsis) holds Bulk create, Bulk update, Process gallery (placeholders). Both menus open bottom-end.</li>
+          <li>Saved view (<code>oc-select</code> sm, 240px): OneTrust default, Overdue reviews, Due in 30 days. A bold * marks unsaved changes.</li>
+          <li>Search (<code>oc-input</code> sm, 224px, clearable): matches name, ID, managing organization and owner. Resets to page 1.</li>
+          <li>Sortable headers (ID, Name, Status) with <code>aria-sort</code>. Default Name ascending; a new column starts ascending.</li>
+          <li>Row actions: Start re-certification, Create variation with AI, Duplicate, Archive (destructive).</li>
+          <li>Status badge: Active <code>success</code>, Pending <code>warning</code>, Archived <code>neutral</code>.</li>
+          <li>Table footer: <code>oc-pagination</code>, "Showing 1–20 of 22", rows per page 10/20/50/100 (default 20).</li>
+        </ol>
+      </figure>
+      <div class="two">
+        <div>
+          <h3>Columns</h3>
+          <div class="table-scroll"><table>
+            <thead><tr><th scope="col">Column</th><th scope="col">Width</th><th scope="col">Content</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Select</th><td class="num">48px</td><td><code>oc-checkbox</code>. Header selects the current page (checked or indeterminate); selection persists across pages.</td></tr>
+              <tr><th scope="row">Actions</th><td class="num">60px</td><td>Ellipsis icon button "Actions for {name}" with the row menu.</td></tr>
+              <tr><th scope="row">ID</th><td class="num">96px</td><td>Tabular numerals, sortable.</td></tr>
+              <tr><th scope="row">Name</th><td class="num">flex</td><td>Underlined link (no destination yet) plus an xs Preview icon button.</td></tr>
+              <tr><th scope="row">Managing organization</th><td class="num">240px</td><td>Group entity name.</td></tr>
+              <tr><th scope="row">Business process owner</th><td class="num">220px</td><td>Avatar sm + name.</td></tr>
+              <tr><th scope="row">Status</th><td class="num">140px</td><td>Badge, sortable by label.</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <div>
+          <h3>Rules and states</h3>
+          <ul class="tight">
+            <li><b>Table:</b> native <code>table-layout: fixed</code>, min-width 1040px (scrolls sideways when narrower), 44px rows, sticky header on <code>--oc-secondary</code>, hover <code>--oc-secondary-light-hover</code>, selected <code>--oc-secondary-light-active</code>.</li>
+            <li><b>Review status</b> drives the saved views, not a column: next review = last reviewed + cadence (180/270/365 days) against today; past due is Overdue, within 30 days is Due soon.</li>
+            <li><b>Drafts banner:</b> when AI drafts exist, an info alert "{n} AI-drafted record(s) waiting for approval" with "Review drafts" → Pending inventory.</li>
+            <li><b>Empty:</b> "No processing activities match this view."</li>
+            <li><b>Create variation with AI</b> opens <span class="mono">/ai-assisted-ropa?from={id}</span> and starts the duplicate check from that record (see <a href="#ai-chat-duplicate">Duplicate check</a>).</li>
+            <li>Toolbar placeholders: Choose columns, Export, Refresh, Recycle bin, Add filter.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PENDING INVENTORY ============ -->
+    <section class="screen" id="pending-inventory" aria-labelledby="pending-title">
+      <div class="screen-head">
+        <h2 id="pending-title">Pending inventory</h2>
+        <div class="meta"><span>Route <b>/pending-inventory</b> (<span class="mono">?draft={id}</span> after Author with AI)</span><span>Files <span class="mono">pages/pending-inventory/*</span></span></div>
+        <p>Records waiting for a reviewer, including drafts submitted from Author with AI.</p>
+      </div>
+      <figure>
+        <div class="shot"><img src="screens/05-pending-inventory.png" alt="Pending inventory list with summary stats" width="1440" height="900" loading="lazy"></div>
+        <figcaption>Header with four stats (Total pending, New records, Updated records, Similar records), toolbar, and the pending records table.</figcaption>
+      </figure>
+      <div class="two">
+        <div>
+          <h3>Columns</h3>
+          <div class="table-scroll"><table>
+            <thead><tr><th scope="col">Column</th><th scope="col">Width</th><th scope="col">Content</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Actions</th><td class="num">60px</td><td>Drafts: Review and approve (disabled), Withdraw draft (destructive). Others: Approve, Reject.</td></tr>
+              <tr><th scope="row">ID</th><td class="num">72px</td><td>Right-aligned.</td></tr>
+              <tr><th scope="row">Name</th><td class="num">flex</td><td>Sortable. Drafts add a purple badge "AI draft · {completeness}%".</td></tr>
+              <tr><th scope="row">Review type</th><td class="num">136px</td><td>e.g. New record.</td></tr>
+              <tr><th scope="row">Inventory type</th><td class="num">168px</td><td>e.g. Processing activities.</td></tr>
+              <tr><th scope="row">Source type</th><td class="num">128px</td><td>Empty shows "—" in muted text. Drafts: AI authoring.</td></tr>
+              <tr><th scope="row">Owner</th><td class="num">184px</td><td>Avatar + name.</td></tr>
+              <tr><th scope="row">Last updated</th><td class="num">136px</td><td>dd/mm/yyyy (en-GB), sortable. Default sort: newest first.</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <div>
+          <h3>Rules and states</h3>
+          <ul class="tight">
+            <li><b>Success banner</b> (<code>role="status"</code>) when <span class="mono">?draft</span> matches a stored draft: "{name} is waiting for approval" / "It becomes a processing activity once a reviewer approves it." with "Back to processing activities". That draft's row is highlighted.</li>
+            <li>Other AI draft rows get a faint <code>--oc-secondary-light-hover</code> tint and stay first on ties.</li>
+            <li>Search matches name and ID only. Empty: "No pending records match “{query}”."</li>
+            <li>Table min-width 1180px. Page size fixed at 20; no selection column, no saved views.</li>
+            <li>Stats are fixed figures plus the number of drafts, not counted from rows.</li>
+            <li>Placeholders: View tips link, Refresh, Manage rules, Add inventory, Add filter, Approve, Reject.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ AUTHOR WITH AI ============ -->
+    <section class="screen" id="author" aria-labelledby="author-title">
+      <div class="screen-head">
+        <h2 id="author-title">Author with AI</h2>
+        <div class="meta"><span>Route <b>/processing-activities/new</b></span><span>From Add processing activity → Author with AI</span><span>Files <span class="mono">pages/author/*</span>, <span class="mono">data/extract.ts</span></span></div>
+        <p>The form-based authoring flow: describe the activity, then review a rule-based draft before sending it to Pending inventory.</p>
+      </div>
+      <figure>
+        <div class="shot"><img src="screens/06-author-describe.png" alt="Author with AI, Describe step" width="1440" height="900" loading="lazy"></div>
+        <figcaption>Step 1, Describe. <code>oc-path</code> (max 480px) above a 896px column on <code>--oc-secondary-light-hover</code>, with a persistent info alert: "Prototype — Rule-based drafting from the ropa-authoring skill. Every value quotes your text. No AI model is connected yet."</figcaption>
+      </figure>
+      <div class="two">
+        <div>
+          <h3>Step 1 · Describe the activity</h3>
+          <div class="table-scroll"><table>
+            <thead><tr><th scope="col">Control</th><th scope="col">Rules</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Activity name</th><td><code>oc-input</code>, required. Placeholder "e.g. Candidate screening". Error "Add a name for this activity."</td></tr>
+              <tr><th scope="row">Owning entity</th><td><code>oc-select</code>, required, 8 group entities. Help "The group entity that owns this activity." Error "Choose the group entity that owns this activity."</td></tr>
+              <tr><th scope="row">Your role</th><td><code>oc-radio-group</code> horizontal: Controller (default), Joint controller, Processor; help text follows the choice.</td></tr>
+              <tr><th scope="row">Description</th><td><code>textarea[oc-textarea]</code>, 9 rows, required. Error "Describe the activity, or upload a document."</td></tr>
+              <tr><th scope="row">Upload a document</th><td>Secondary sm, paperclip. .txt/.md/.csv or text/*; the text replaces the description and a removable tag shows "Loaded {file}". Otherwise: "The prototype reads plain-text files (.txt, .md). Paste other documents into the description."</td></tr>
+              <tr><th scope="row">Use a sample description</th><td>Tertiary sm. Fills the candidate-screening sample; sets the name if empty.</td></tr>
+              <tr><th scope="row">Draft record</th><td>Accent, ai-sparkles. Disabled until name, entity and description are filled. Shows <code>oc-loading</code> lg, "Drafting your record…", for 2 s.</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <div>
+          <h3>Step 2 · Review the draft</h3>
+          <ul class="tight">
+            <li><b>Summary:</b> name, "{Role} · {Entity}", and three stats: Complete % (orange below 80%, green at 80%+), AI suggestions, Questions.</li>
+            <li><b>Suggested values:</b> each field shows an <code>oc-status</code> "{band} - {NN}%", an editable input, the evidence quote and a rationale. Editing marks it "Edited by you." Bands: high ≥ 0.85, medium ≥ 0.60, else low.</li>
+            <li><b>Questions:</b> one input per missing field, with the follow-up prompt as help text.</li>
+            <li><b>Linked inventory:</b> vendors, assets and data categories named in the text, each with Accept / Reject (<code>aria-pressed</code>; clicking the active one resets it). Rejected rows dim to 50%.</li>
+            <li><b>Completeness</b> = filled items ÷ 13 (10 core fields + data subjects + a vendor or asset + a data category).</li>
+            <li><b>Send to Pending inventory</b> stores the draft and opens <span class="mono">/pending-inventory?draft={id}</span>. "Back to description" keeps values.</li>
+          </ul>
+          <div class="note"><b>Known issue</b><span>Clicking "Review the draft" in the path re-runs extraction and discards edits and answers.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ AI START ============ -->
+    <section class="screen" id="ai-start" aria-labelledby="start-title">
+      <div class="screen-head">
+        <h2 id="start-title">AI Assisted RoPA Creation · start screen</h2>
+        <div class="meta"><span>Route <b>/ai-assisted-ropa</b></span><span>Figma <b>Main-AI-Prompt</b> (node 2183:1275)</span><span>Files <span class="mono">pages/ai-assisted/start/*</span>, <span class="mono">data/authoring-history.ts</span></span></div>
+        <p>Where a user starts a new RoPA conversation or reopens an earlier one. Nothing leaves this screen until the user sends from the input.</p>
+      </div>
+      <figure>
+        <div class="shot">
+          <img src="screens/10-start.png" alt="AI assisted RoPA authoring start screen" width="1440" height="900" loading="lazy">
+          <span class="pin" style="left:79%;top:12%" aria-hidden="true">1</span>
+          <span class="pin" style="left:32%;top:20.5%" aria-hidden="true">2</span>
+          <span class="pin" style="left:60%;top:29.6%" aria-hidden="true">3</span>
+          <span class="pin" style="left:86.5%;top:20.5%" aria-hidden="true">4</span>
+          <span class="pin" style="left:28%;top:36%" aria-hidden="true">5</span>
+          <span class="pin" style="left:32.6%;top:46%" aria-hidden="true">6</span>
+          <span class="pin" style="left:71%;top:51%" aria-hidden="true">7</span>
+        </div>
+        <ol class="legend">
+          <li>Title "AI assisted RoPA authoring", 36px, weight 500, tight leading; description at <code>--oc-font-size-md</code>, centred.</li>
+          <li>Attach: 32px tile, light green <code>--oc-item-hover</code> on hover (Figma variant), <code>--oc-item-active</code> pressed. .txt/.md/.csv up to 1 MB.</li>
+          <li>AI input: <code>--oc-secondary-hover</code> grey, 30px radius, max 849px wide. Placeholder is the template prompt.</li>
+          <li>Microphone while empty; becomes the round Send button once there's text or a file.</li>
+          <li>Sample pills: white, <code>--oc-border</code>, full radius, 6px × 24px padding, 14px weight 500.</li>
+          <li>History heading with item count in <code>--oc-disabled-foreground</code>.</li>
+          <li>Completeness badge: green from 80%, amber from 50%, red below 50%.</li>
+        </ol>
+      </figure>
+      <div class="gallery">
+        <figure>
+          <div class="shot"><img src="screens/11-start-sample-filled.png" alt="Start screen with a sample filled into the focused input" width="1440" height="900" loading="lazy"></div>
+          <figcaption>After a sample pill: the input holds the sample, grows to fit, turns white with the focus border and floating shadow, and shows Send.</figcaption>
+        </figure>
+      </div>
+      <div class="two">
+        <div>
+          <h3>AI input</h3>
+          <div class="table-scroll"><table>
+            <tbody>
+              <tr><th scope="row">Height</th><td>58px minimum including border; grows with the text to 200px of text, then scrolls. Shrinks back when cleared.</td></tr>
+              <tr><th scope="row">Padding</th><td>12px top and bottom, 24px left, 12px right; 12px between tiles and text.</td></tr>
+              <tr><th scope="row">Icon position</th><td>Both 32px tiles stay at the top as the field grows; the first text line is centred on them.</td></tr>
+              <tr><th scope="row">Hover</th><td>Border becomes <code>--oc-border</code>.</td></tr>
+              <tr><th scope="row">Focus</th><td>Background <code>--oc-input</code> (white), border <code>--oc-border-focus</code>, shadow <code>--oc-shadow-floating</code> (0 12px 24px, black 14%). All three ease over <code>--oc-motion-duration-micro</code>.</td></tr>
+              <tr><th scope="row">Send button</th><td>32px circle, <code>--oc-foreground</code> (#080916) with a white <code>paper-plane</code>; hover <code>--oc-primary</code>, pressed <code>--oc-muted</code>.</td></tr>
+              <tr><th scope="row">Hint line</th><td>12px muted, under the input: "Press Tab to use the template." (focused, empty) · "Edit it if you like, then select Send or press Enter to start drafting." (has text) · "Listening… Select the microphone again to stop." · file errors in <code>--oc-border-error</code>.</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <div>
+          <h3>Behaviour</h3>
+          <ul class="tight">
+            <li><b>Enter</b> sends; <b>Shift+Enter</b> adds a line. <b>Tab</b> in an empty input fills the template with "[team]" selected.</li>
+            <li><b>Sample pill</b> fills the input with one of that scenario's three variants (random), focuses it with the caret at the end, and remembers the sample's record name. It never sends.</li>
+            <li><b>Attach</b> shows the file as a removable <code>oc-tag</code> inside the input. Wrong type: "{file} isn't a text file. Attach a .txt, .md or .csv file." Over 1 MB: "{file} is over 1 MB." A file alone can be sent.</li>
+            <li><b>Dictate</b> (en-GB) appends speech to the text; disabled with a tooltip where the browser has no speech recognition; denied microphone shows "Allow microphone access to dictate."</li>
+            <li><b>History card</b> (whole card is a button) reopens the session: the assistant drafts again from its saved description, with its record name.</li>
+            <li><b>History</b> shows three examples plus sessions started in this browser, newest first; each updates its name, summary and completeness as the conversation goes. Dates are MM/DD/YY. Source shows "Document" (<code>file-lines</code>) or "Prompt" (<code>comments</code>).</li>
+            <li>Card hover: border <code>--oc-border-interactive-hover</code>, background <code>--oc-item-hover</code>. Cards are 680px max, 10px × 18px padding, 6px radius.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ AI CHAT ============ -->
+    <section class="screen" id="ai-chat" aria-labelledby="chat-title">
+      <div class="screen-head">
+        <h2 id="chat-title">AI Assisted RoPA Creation · chat &amp; draft</h2>
+        <div class="meta"><span>Same route, after sending</span><span>Files <span class="mono">pages/ai-assisted/ai-assisted.*</span>, <span class="mono">data/skill-*.ts</span>, <span class="mono">data/ropa-check.ts</span></span></div>
+        <p>A conversation with the OneCore assistant beside a live draft of the Article 30 record, checked by the ropa-authoring skill as it changes.</p>
+      </div>
+      <div class="gallery">
+        <figure>
+          <div class="shot"><img src="screens/12-chat-creating.png" alt="Draft panel showing a skeleton while the first draft is created" width="1440" height="900" loading="lazy"></div>
+          <figcaption>Creating: the whole draft panel is an <code>oc-skeleton</code> and the badge reads "Creating" until the first reply finishes.</figcaption>
+        </figure>
+        <figure>
+          <div class="shot"><img src="screens/15-chat-record-details.png" alt="Record details steps replacing the composer" width="1440" height="900" loading="lazy"></div>
+          <figcaption>Record details: <code>oc-assistant-steps</code> replaces the composer: name, group entity, role (pre-selected from the text's role cue, with the quote).</figcaption>
+        </figure>
+        <figure>
+          <div class="shot"><img src="screens/16-chat-questions.png" alt="Follow-up questions with answer chips" width="1440" height="900" loading="lazy"></div>
+          <figcaption>Follow-up questions, one at a time, with answer chips and "Skip this question". "(n to go)" counts the rest.</figcaption>
+        </figure>
+        <figure>
+          <div class="shot"><img src="screens/17-chat-field-updating.png" alt="A field showing a skeleton while its value changes" width="1440" height="900" loading="lazy"></div>
+          <figcaption>A changed field shows a skeleton and a teal left edge (<code>--oc-motion-state-active</code>) for 1.1 s, then its new value.</figcaption>
+        </figure>
+      </div>
+      <div class="two">
+        <div>
+          <h3>Layout</h3>
+          <div class="table-scroll"><table>
+            <tbody>
+              <tr><th scope="row">Split</th><td>Chat 30% (min 260px) · draft 70%. Page header "AI Assisted RoPA Creation" with breadcrumb "Processing activities / New record".</td></tr>
+              <tr><th scope="row">Draft panel</th><td>Container query at 640px: fields in two columns, Checks and Posture side by side. Footer pinned with the send action.</td></tr>
+              <tr><th scope="row">Draft badge</th><td>Not started · Creating · Possible duplicate · Drafting · Ready to send · Sent · Not created.</td></tr>
+              <tr><th scope="row">Basics</th><td>Record name, Owning entity (full group path), Role with detail, plus "Local variation of" or "Duplicate check" after a duplicate decision.</td></tr>
+              <tr><th scope="row">Completeness</th><td><code>oc-progress</code> sm: success, or warning below 80% with "Below 80%: the dashboard flags the record as incomplete." Art. 30(1) scores 13 items; Art. 30(2) (processor) 7.</td></tr>
+              <tr><th scope="row">Field</th><td>Label, then "Asking now" (purple), "From you" (blue), "Inherited" (teal) or an <code>oc-status</code> confidence band; value; evidence quote for AI values; "Missing" or "Skipped. Left for the reviewer." otherwise.</td></tr>
+              <tr><th scope="row">Below fields</th><td>Linked inventory (removable tags, red for Art. 9 data, "· not in inventory"), Checks (Critical / Warning / Info with any recorded answer), Posture (conditions, required assessments with owner, review cadence).</td></tr>
+            </tbody>
+          </table></div>
+        </div>
+        <div>
+          <h3>Conversation flow</h3>
+          <ul class="tight">
+            <li><b>Describe.</b> A reply starts after 900 ms "thinking" and streams at 18 ms a word (<code>[ocStream]</code>). Under 60 characters the assistant asks for more and nothing is created.</li>
+            <li><b>Extract.</b> The reply states how many values and linked items it found; every value quotes its source sentence.</li>
+            <li><b>Duplicate check</b> runs next (below). With no likely duplicate it says so and opens record details.</li>
+            <li><b>Record details</b> (name → group entity → role). Continue is disabled until name and entity are set.</li>
+            <li><b>Questions</b> in the skill's order: missing items, low-confidence values, warnings by severity, unresolved tools, then "Needs review" values to confirm ("Yes, that's right", "Confirm the rest").</li>
+            <li><b>Ready.</b> A summary of completeness, required assessments, open checks and review cadence, then Send to Pending inventory.</li>
+            <li><b>Stop</b> drops the partial reply and rolls back its changes so the user's message can be edited (OneCore shows Edit only on the newest user turn).</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- duplicate -->
+    <section class="screen" id="ai-chat-duplicate" aria-labelledby="dup-title">
+      <div class="screen-head">
+        <h2 id="dup-title">Duplicate check</h2>
+        <div class="meta"><span>Phase <b>duplicate</b></span><span>Files <span class="mono">data/duplicates.ts</span></span></div>
+        <p>Before a record is created, the draft is compared with the processing activities the user can view. A likely duplicate is shown in OneCore's caution yellow and needs a confirmed decision.</p>
+      </div>
+      <figure>
+        <div class="shot">
+          <img src="screens/13-chat-duplicate.png" alt="Likely duplicate shown in the draft panel and a decision card in the chat" width="1440" height="900" loading="lazy">
+          <span class="pin" style="left:44%;top:26%" aria-hidden="true">1</span>
+          <span class="pin" style="left:43%;top:41.5%" aria-hidden="true">2</span>
+          <span class="pin" style="left:94%;top:23.5%" aria-hidden="true">3</span>
+          <span class="pin" style="left:19.5%;top:63.5%" aria-hidden="true">4</span>
+          <span class="pin" style="left:19.5%;top:77.5%" aria-hidden="true">5</span>
+          <span class="pin" style="left:35.5%;top:94.5%" aria-hidden="true">6</span>
+          <span class="pin" style="left:51%;top:91.5%" aria-hidden="true">7</span>
+        </div>
+        <ol class="legend">
+          <li>Caution panel: <code>--oc-supportive-yellow-light</code> fill, 3px <code>--oc-supportive-yellow</code> left edge, <code>-on</code> text; title "Likely duplicate of {name} (#{id})" and the rationale.</li>
+          <li>Overlap table: Overlapping field · This draft · {matched record}. Rows only for real overlaps: Activity, Vendors and systems, Data subjects, Personal data, Clients, Owning entity.</li>
+          <li>Draft badge "Possible duplicate" (warning).</li>
+          <li>Decision card replaces the composer: yellow border, "Likely duplicate", strength badge (Strong / Likely match), the matched record, and a Hide button.</li>
+          <li>Three choices in an <code>oc-radio-group</code>. The selected one's consequence shows below; before that, "Pick one. Nothing is created, linked or inherited until you confirm."</li>
+          <li>Confirm is disabled until a choice is made. Confirming posts the choice as the user's message.</li>
+          <li>Send to Pending inventory stays disabled until the duplicate is resolved.</li>
+        </ol>
+      </figure>
+      <div class="gallery">
+        <figure>
+          <div class="shot"><img src="screens/14-chat-duplicate-choice.png" alt="Create as local variation selected, with its consequence" width="1440" height="900" loading="lazy"></div>
+          <figcaption>A choice selected: its help and consequence text appear, Confirm enables. The draft is unchanged.</figcaption>
+        </figure>
+        <figure>
+          <div class="shot"><img src="screens/20-chat-use-existing.png" alt="Use existing record outcome" width="1440" height="900" loading="lazy"></div>
+          <figcaption>Use existing record: badge "Not created", info alert "Using {name} (#{id})", footer "Open Processing activities", chat chip "Start a new record" (back to the start screen).</figcaption>
+        </figure>
+      </div>
+      <div class="two">
+        <div>
+          <h3>Matching</h3>
+          <div class="table-scroll"><table>
+            <thead><tr><th scope="col">Signal</th><th scope="col">Weight</th><th scope="col">Measured as</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Same activity</th><td class="num">0.40</td><td>Topic words in name + description vs the record's name + purpose (best of 2 × Jaccard and share of the record's words covered).</td></tr>
+              <tr><th scope="row">Vendors and systems</th><td class="num">0.25</td><td>Shared ÷ the shorter list.</td></tr>
+              <tr><th scope="row">Data subjects</th><td class="num">0.15</td><td>Shared ÷ the longer list.</td></tr>
+              <tr><th scope="row">Personal data</th><td class="num">0.10</td><td>Shared ÷ the longer list.</td></tr>
+              <tr><th scope="row">Clients</th><td class="num">0.10</td><td>Processor records: shared controllers.</td></tr>
+              <tr><th scope="row">Adjustments</th><td class="num">×0.75 / +0.05</td><td>Processor vs non-processor; same owning entity.</td></tr>
+            </tbody>
+          </table></div>
+          <p class="lede" style="font-size:13px">Likely at 0.33+, Strong at 0.60+. Only the best match is shown. Only records the user can view are compared (prototype: every group entity except APAC); hidden records are never mentioned.</p>
+        </div>
+        <div>
+          <h3>Decisions</h3>
+          <div class="table-scroll"><table>
+            <thead><tr><th scope="col">Choice</th><th scope="col">Result after Confirm</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Use existing record</th><td>"No new record is created, and this draft is discarded." Phase ends; nothing is sent.</td></tr>
+              <tr><th scope="row">Create as local variation with inheritance</th><td>Draft linked to the record ("Local variation of"). It inherits the parent's purpose, legal basis, retention, data subjects, security and transfers (processing categories for processors) wherever it has no value of its own; those fields show "Inherited". Continues to record details.</td></tr>
+              <tr><th scope="row">Dismiss duplicate flag</th><td>New, unlinked record. "Not a duplicate of {name}. Flag dismissed by {user}." is noted for the reviewer. Continues to record details.</td></tr>
+            </tbody>
+          </table></div>
+          <p class="lede" style="font-size:13px">Starting from a record (Processing activities → Create variation with AI) always matches that record, with "you started from this record" in the rationale.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- send -->
+    <section class="screen" id="ai-chat-send" aria-labelledby="send-title">
+      <div class="screen-head">
+        <h2 id="send-title">Send to Data Mapping</h2>
+        <div class="meta"><span>Files <span class="mono">data/handoff.ts</span>; receiver <span class="mono">ai-ropa-datamapping/lib/authoring/ropa-handoff.ts</span></span></div>
+        <p>Confirms, then hands the record to Data Mapping's Processing activities, where a reviewer approves it.</p>
+      </div>
+      <div class="gallery">
+        <figure>
+          <div class="shot"><img src="screens/18-chat-send-confirmation.png" alt="Send to Pending inventory confirmation dialog" width="1440" height="900" loading="lazy"></div>
+          <figcaption><code>oc-dialog</code> (md): "Send to Pending inventory?" / "We'll take you back to your Data Mapping page in a new tab. This page stays open here." Three numbered steps; Cancel (secondary) and "Send and open Data Mapping" (primary).</figcaption>
+        </figure>
+        <figure>
+          <div class="shot"><img src="screens/19-chat-sent.png" alt="Sent state with Open Data Mapping and Download JSON" width="1440" height="900" loading="lazy"></div>
+          <figcaption>Sent: badge "Sent", success alert "{name} was sent to Data Mapping", "Open Data Mapping" and "Download JSON". Questions stop.</figcaption>
+        </figure>
+      </div>
+      <ul class="tight">
+        <li>Send is enabled once the record has a name and group entity, no reply is streaming, and no duplicate decision is pending.</li>
+        <li>Confirming opens Data Mapping in a new tab, in the same click so popup blockers allow it. Escape, the close button, Cancel or an outside click send nothing.</li>
+        <li>The package is JSON (<code>format: "onetrust.ropa-handoff"</code>, version 1): the record in the skill's shape with every evidence quote and relationship, the check results, notes, and <code>duplicateCheck</code> when one was decided. It travels base64url-encoded in the URL fragment <span class="mono">#ropa-import=…</span>, which browsers don't send to servers.</li>
+        <li>If the tab is blocked: "Your browser blocked the new tab. Open Data Mapping to add it to Processing activities."</li>
+        <li>Data Mapping validates the package, adds a Pending row marked with a sparkle, shows a confirmation with "Show record", clears the fragment, and ignores the same package twice.</li>
+      </ul>
+    </section>
+
+    <!-- prototype only -->
+    <section class="screen" id="prototype-only" aria-labelledby="proto-title">
+      <div class="screen-head">
+        <h2 id="proto-title">Prototype stand-ins</h2>
+        <p>Behaviour that looks real in the prototype but needs a production implementation.</p>
+      </div>
+      <div class="table-scroll"><table>
+        <thead><tr><th scope="col">Area</th><th scope="col">In the prototype</th><th scope="col">Production needs</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">AI</th><td>No model. Rule-based extraction (<span class="mono">extract.ts</span>, <span class="mono">skill-draft.ts</span>); replies are written in code and streamed with fixed delays.</td><td>A model call that loads the ropa-authoring skill at runtime, with the same evidence and confidence contract.</td></tr>
+          <tr><th scope="row">Storage</th><td>Drafts, History and handoffs live in each browser's localStorage.</td><td>Data Mapping API for drafts, sessions and records.</td></tr>
+          <tr><th scope="row">Records</th><td>22 mock processing activities with hand-written profiles for duplicate matching.</td><td>The tenant's real RoPA, searchable server-side.</td></tr>
+          <tr><th scope="row">Permissions</th><td>Duplicate check ignores APAC records to stand in for view rights.</td><td>The user's real record-level permissions.</td></tr>
+          <tr><th scope="row">Handoff</th><td>JSON in a URL fragment to another app.</td><td>A server-side create in Pending inventory.</td></tr>
+          <tr><th scope="row">User</th><td>Signed-in user is fixed as Kevin Marshall.</td><td>The authenticated user.</td></tr>
+          <tr><th scope="row">Uploads</th><td>Plain text only (.txt, .md, .csv).</td><td>Document parsing (PDF, Word…).</td></tr>
+          <tr><th scope="row">Placeholders</th><td>Top bar controls, toolbar icons, Approve/Reject, bulk actions, column chooser.</td><td>Out of scope for this flow unless specified.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <footer>Captured from the running prototype on 29 October 2026 at commit 2ae6553 (1440 × 900, light theme, demo mode as noted).</footer>
+  </main>
+</div>

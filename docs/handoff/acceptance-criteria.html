@@ -1,0 +1,425 @@
+<title>RoPA Acceptance Criteria</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: a sticky feature index beside one column of feature sections; each criterion is a Given / When / Then card with an ID. */
+  :root {
+    --bg: #ffffff; --surface: #f6f7f8; --fg: #080916; --muted: #5f6675; --line: #dde1e6;
+    --accent: #00805a; --accent-soft: #e6f7ef; --caution: #8a5a00; --caution-soft: #fff6e0;
+    --font-body: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d0f14; --surface: #161a21; --fg: #eef0f3; --muted: #9aa3b2; --line: #2a303a;
+      --accent: #3fd39b; --accent-soft: #10302a; --caution: #f2c25b; --caution-soft: #2e2510; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d0f14; --surface: #161a21; --fg: #eef0f3; --muted: #9aa3b2; --line: #2a303a;
+    --accent: #3fd39b; --accent-soft: #10302a; --caution: #f2c25b; --caution-soft: #2e2510; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
+  .page {
+    max-width: 1180px; margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 40px 64px;
+    display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 48px;
+  }
+  nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; display: grid; gap: 2px; font-size: 13px; }
+  nav.toc b { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  nav.toc a { color: var(--fg); text-decoration: none; padding: 4px 8px; border-radius: 4px; display: flex; justify-content: space-between; gap: 8px; }
+  nav.toc a:hover { background: var(--surface); }
+  nav.toc a span { color: var(--muted); font-variant-numeric: tabular-nums; }
+  main { display: grid; gap: 48px; min-width: 0; }
+  h1, h2 { margin: 0; text-wrap: balance; }
+  h1 { font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+  h2 { font-size: 20px; font-weight: 600; }
+  p { margin: 0; max-width: 72ch; }
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+  code { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+  header.top { display: grid; gap: 12px; }
+  .eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .lede { color: var(--muted); }
+  .tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 13px; color: var(--muted); }
+  .btn {
+    font: inherit; font-size: 13px; font-weight: 500; padding: 6px 14px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--fg); background: var(--fg); color: var(--bg);
+  }
+  .btn.ghost { background: transparent; color: var(--fg); border-color: var(--line); }
+  .btn:hover { opacity: 0.88; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--muted); align-items: center; }
+  .story { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 12px 16px; border-radius: 4px; font-size: 14px; display: grid; gap: 4px; max-width: 80ch; }
+  .story b { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
+
+  section.feature { display: grid; gap: 14px; scroll-margin-top: 24px; min-width: 0; }
+  .feature-head { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; border-top: 2px solid var(--fg); padding-top: 14px; }
+  .feature-head a { font-size: 13px; }
+  .feature-head .count { font-size: 13px; color: var(--muted); }
+  .acs { display: grid; gap: 10px; }
+  article.ac {
+    border: 1px solid var(--line); border-radius: 6px; padding: 12px 16px;
+    display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 4px 16px;
+  }
+  .ac .id { font-family: var(--font-mono); font-size: 12.5px; font-weight: 500; color: var(--accent); padding-top: 2px; }
+  .ac .title { font-weight: 600; font-size: 14.5px; }
+  .ac dl { grid-column: 2; margin: 2px 0 0; display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 3px 10px; font-size: 14px; }
+  .ac dt { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+  .ac dd { margin: 0; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; padding: 1px 8px; border-radius: 999px; margin-left: 8px; vertical-align: 1px; }
+  .tag.proto { background: var(--caution-soft); color: var(--caution); border: 1px solid var(--caution); }
+  footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 16px; }
+  #copied { min-width: 10ch; }
+
+  @media (max-width: 880px) {
+    .page { grid-template-columns: 1fr; gap: 24px; }
+    nav.toc { position: static; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+    nav.toc b { grid-column: 1 / -1; }
+    h1 { font-size: 24px; }
+    article.ac { grid-template-columns: 1fr; }
+    .ac dl { grid-column: 1; }
+  }
+</style>
+
+<div class="page">
+  <nav class="toc" aria-label="Features">
+    <b>Features</b>
+    <a href="#shell">App shell <span>SHELL</span></a>
+    <a href="#list">Processing activities <span>PA</span></a>
+    <a href="#pending">Pending inventory <span>PEND</span></a>
+    <a href="#author">Author with AI <span>AUTH</span></a>
+    <a href="#start">AI start screen <span>START</span></a>
+    <a href="#history">History <span>HIST</span></a>
+    <a href="#draft">Drafting conversation <span>CHAT</span></a>
+    <a href="#panel">Draft panel <span>PANEL</span></a>
+    <a href="#duplicate">Duplicate check <span>DUP</span></a>
+    <a href="#send">Send to Data Mapping <span>SEND</span></a>
+    <a href="#a11y">Accessibility <span>A11Y</span></a>
+  </nav>
+
+  <main>
+    <header class="top">
+      <span class="eyebrow">Developer handoff · AI-assisted RoPA prototype</span>
+      <h1>Acceptance criteria</h1>
+      <p class="lede">Testable behaviour for each feature of the OneCore RoPA prototype, written as Given / When / Then. Each criterion has an ID to reference in tickets and tests, and each feature links to its section in the <a href="https://claude.ai/artifact/D4z87xAAiWgYQhvdpFnn3Z">screen specs</a>. All of them pass in the prototype; those tagged <span class="tag proto">Stand-in</span> are met by a mock that production must replace.</p>
+      <div class="tools">
+        <button type="button" class="btn" id="copy-all">Copy all as Markdown</button>
+        <span id="copied" aria-live="polite"></span>
+        <span id="total"></span>
+      </div>
+    </header>
+
+    <!-- SHELL -->
+    <section class="feature" id="shell" aria-labelledby="h-shell">
+      <div class="feature-head"><h2 id="h-shell">App shell</h2><a href="https://claude.ai/artifact/D4z87xAAiWgYQhvdpFnn3Z#shell">Spec</a></div>
+      <div class="acs">
+        <article class="ac"><span class="id">SHELL-01</span><span class="title">Demo mode is on at every load</span>
+          <dl><dt>Given</dt><dd>any page is loaded or reloaded</dd><dt>Then</dt><dd>the Demo mode switch is on, the navigation shows only "AI Assisted RoPA Creation" and the module name "Data Mapping Automation" stays visible</dd></dl></article>
+        <article class="ac"><span class="id">SHELL-02</span><span class="title">Turning demo mode off shows the full navigation</span>
+          <dl><dt>Given</dt><dd>demo mode is on</dd><dt>When</dt><dd>the user turns the switch off</dd><dt>Then</dt><dd>every navigation group and item appears, with all groups closed</dd></dl></article>
+        <article class="ac"><span class="id">SHELL-03</span><span class="title">Home goes to the right page</span>
+          <dl><dt>Given</dt><dd>the user opens <span class="mono">/</span></dd><dt>Then</dt><dd>they land on AI Assisted RoPA Creation when demo mode is on, and on Processing activities when it's off</dd></dl></article>
+        <article class="ac"><span class="id">SHELL-04</span><span class="title">Collapse to a rail</span>
+          <dl><dt>Given</dt><dd>the sidebar is expanded (256px)</dd><dt>When</dt><dd>the user selects Collapse navigation</dd><dt>Then</dt><dd>it animates to a 48px rail, labels fade out, icons don't move, and the logo becomes an Expand navigation button; with reduced motion the change is instant</dd></dl></article>
+        <article class="ac"><span class="id">SHELL-05</span><span class="title">Groups open from the rail</span>
+          <dl><dt>Given</dt><dd>the sidebar is collapsed</dd><dt>When</dt><dd>the user selects a group icon</dd><dt>Then</dt><dd>the sidebar expands and that group opens</dd></dl></article>
+        <article class="ac"><span class="id">SHELL-06</span><span class="title">The current page is marked</span>
+          <dl><dt>Given</dt><dd>the user is on a page inside a group</dd><dt>Then</dt><dd>that item shows the active style and <code>aria-current="page"</code>; if the group is closed, the group shows as active</dd></dl></article>
+      </div>
+    </section>
+
+    <!-- PA -->
+    <section class="feature" id="list" aria-labelledby="h-list">
+      <div class="feature-head"><h2 id="h-list">Processing activities</h2><a href="https://claude.ai/artifact/D4z87xAAiWgYQhvdpFnn3Z#processing-activities">Spec</a></div>
+      <div class="acs">
+        <article class="ac"><span class="id">PA-01</span><span class="title">Search filters the list</span>
+          <dl><dt>Given</dt><dd>the list is showing</dd><dt>When</dt><dd>the user types in Search</dd><dt>Then</dt><dd>only rows whose name, ID, managing organization or owner contain the text (any case) remain, and the table returns to page 1</dd></dl></article>
+        <article class="ac"><span class="id">PA-02</span><span class="title">Sorting</span>
+          <dl><dt>Given</dt><dd>the list is sorted by Name ascending (default)</dd><dt>When</dt><dd>the user selects a sortable header</dd><dt>Then</dt><dd>a new column sorts ascending, the same column toggles direction, and the header's <code>aria-sort</code> and arrow icon match</dd></dl></article>
+        <article class="ac"><span class="id">PA-03</span><span class="title">Saved views use review dates</span>
+          <dl><dt>When</dt><dd>the user picks "Overdue reviews" or "Due in 30 days"</dd><dt>Then</dt><dd>the list shows records whose next review (last reviewed + cadence) is past, or within 30 days, of today</dd></dl></article>
+        <article class="ac"><span class="id">PA-04</span><span class="title">Unsaved view changes are flagged</span>
+          <dl><dt>Given</dt><dd>a search term is entered or the sort isn't Name ascending</dd><dt>Then</dt><dd>a bold * beside the saved view reads "View has unsaved changes"</dd></dl></article>
+        <article class="ac"><span class="id">PA-05</span><span class="title">Selection</span>
+          <dl><dt>When</dt><dd>the user checks the header checkbox</dd><dt>Then</dt><dd>every row on the current page is selected and highlighted; the header shows indeterminate when only some are; selections persist across pages</dd></dl></article>
+        <article class="ac"><span class="id">PA-06</span><span class="title">Pagination</span>
+          <dl><dt>When</dt><dd>the user changes rows per page (10, 20, 50, 100)</dd><dt>Then</dt><dd>the table returns to page 1 and the footer reads "Showing {first}–{last} of {total}"</dd></dl></article>
+        <article class="ac"><span class="id">PA-07</span><span class="title">Add processing activity menu</span>
+          <dl><dt>When</dt><dd>the user opens "Add processing activity"</dd><dt>Then</dt><dd>it offers Author with AI (→ <span class="mono">/processing-activities/new</span>), AI Assisted RoPA Creation (→ <span class="mono">/ai-assisted-ropa</span>) and Create manually (disabled)</dd></dl></article>
+        <article class="ac"><span class="id">PA-08</span><span class="title">Create a variation from a record</span>
+          <dl><dt>When</dt><dd>the user picks "Create variation with AI" from a row's menu</dd><dt>Then</dt><dd>AI Assisted RoPA Creation opens straight in the conversation, starting from that record (see DUP-09)</dd></dl></article>
+        <article class="ac"><span class="id">PA-09</span><span class="title">Empty result</span>
+          <dl><dt>Given</dt><dd>nothing matches the view and search</dd><dt>Then</dt><dd>the table shows "No processing activities match this view."</dd></dl></article>
+        <article class="ac"><span class="id">PA-10</span><span class="title">Drafts banner</span>
+          <dl><dt>Given</dt><dd>AI drafts are waiting</dd><dt>Then</dt><dd>an info alert reads "{n} AI-drafted record(s) waiting for approval" with "Review drafts", which opens Pending inventory</dd></dl></article>
+      </div>
+    </section>
+
+    <!-- PEND -->
+    <section class="feature" id="pending" aria-labelledby="h-pending">
+      <div class="feature-head"><h2 id="h-pending">Pending inventory</h2><a href="https://claude.ai/artifact/D4z87xAAiWgYQhvdpFnn3Z#pending-inventory">Spec</a></div>
+      <div class="acs">
+        <article class="ac"><span class="id">PEND-01</span><span class="title">Submitted draft is confirmed</span>
+          <dl><dt>Given</dt><dd>the user submitted a draft from Author with AI</dd><dt>Then</dt><dd>Pending inventory opens with a success alert "{name} is waiting for approval", the draft's row highlighted and marked "AI draft · {completeness}%"</dd></dl></article>
+        <article class="ac"><span class="id">PEND-02</span><span class="title">Withdraw a draft</span>
+          <dl><dt>When</dt><dd>the user picks "Withdraw draft" on an AI draft</dd><dt>Then</dt><dd>the row disappears; if it was the confirmed draft, the success alert goes too</dd></dl></article>
+        <article class="ac"><span class="id">PEND-03</span><span class="title">Search by name or ID</span>
+          <dl><dt>When</dt><dd>the user searches</dd><dt>Then</dt><dd>rows are matched on name and ID only; with no match the table reads "No pending records match “{query}”."</dd></dl></article>
+        <article class="ac"><span class="id">PEND-04</span><span class="title">Newest first</span>
+          <dl><dt>Then</dt><dd>rows sort by Last updated, newest first, shown as dd/mm/yyyy; AI drafts stay above other rows updated at the same time</dd></dl></article>
+        <article class="ac"><span class="id">PEND-05</span><span class="title">Drafts survive a reload <span class="tag proto">Stand-in</span></span>
+          <dl><dt>Given</dt><dd>a draft was submitted</dd><dt>When</dt><dd>the page reloads or another tab opens</dd><dt>Then</dt><dd>the draft is still listed (prototype: this browser's localStorage)</dd></dl></article>
+      </div>
+    </section>
+
+    <!-- AUTH -->
+    <section class="feature" id="author" aria-labelledby="h-author">
+      <div class="feature-head"><h2 id="h-author">Author with AI</h2><a href="https://claude.ai/artifact/D4z87xAAiWgYQhvdpFnn3Z#author">Spec</a></div>
+      <div class="acs">
+        <article class="ac"><span class="id">AUTH-01</span><span class="title">Draft needs name, entity and description</span>
+          <dl><dt>Given</dt><dd>any of activity name, owning entity or description is empty</dd><dt>Then</dt><dd>"Draft record" is disabled, and a touched empty field shows its error ("Add a name for this activity.", "Choose the group entity that owns this activity.", "Describe the activity, or upload a document.")</dd></dl></article>
+        <article class="ac"><span class="id">AUTH-02</span><span class="title">Upload a text document</span>
+          <dl><dt>When</dt><dd>the user uploads a .txt, .md or .csv file</dd><dt>Then</dt><dd>its text replaces the description and a removable tag reads "Loaded {file}"; any other type shows "The prototype reads plain-text files (.txt, .md). Paste other documents into the description." <span class="tag proto">Stand-in</span></dd></dl></article>
+        <article class="ac"><span class="id">AUTH-03</span><span class="title">Drafting progress</span>
+          <dl><dt>When</dt><dd>the user selects "Draft record"</dd><dt>Then</dt><dd>a status region shows "Drafting your record…" with a loader, then the Review step</dd></dl></article>
+        <article class="ac"><span class="id">AUTH-04</span><span class="title">Every value quotes its evidence</span>
+          <dl><dt>Then</dt><dd>each suggested value shows its confidence band and percentage, the sentence it came from and a rationale; fields with no evidence are left out, never guessed</dd></dl></article>
+        <article class="ac"><span class="id">AUTH-05</span><span class="title">Edits are marked as the user's</span>
+          <dl><dt>When</dt><dd>the user edits a suggested value</dd><dt>Then</dt><dd>it is marked "Edited by you." and keeps its original evidence</dd></dl></article>
+        <article class="ac"><span class="id">AUTH-06</span><span class="title">Missing fields become questions</span>
+          <dl><dt>Then</dt><dd>each field the description didn't cover gets an input with its follow-up prompt; answers are saved as the user's own values</dd></dl></article>
+        <article class="ac"><span class="id">AUTH-07</span><span class="title">Accept or reject linked inventory</span>
+          <dl><dt>When</dt><dd>the user selects Accept or Reject on a vendor, asset or data category</dd><dt>Then</dt><dd>the button shows pressed; Reject dims the row and drops it from completeness and the submitted draft; selecting the pressed button again resets it</dd></dl></article>
+        <article class="ac"><span class="id">AUTH-08</span><span class="title">Completeness</span>
+          <dl><dt>Then</dt><dd>Complete % = filled items ÷ 13, shown orange below 80% and green at 80% or more</dd></dl></article>
+        <article class="ac"><span class="id">AUTH-09</span><span class="title">Submit to Pending inventory</span>
+          <dl><dt>When</dt><dd>the user selects "Send to Pending inventory"</dd><dt>Then</dt><dd>the draft is stored with its fields, kept relationships, completeness and submitter, and PEND-01 applies</dd></dl></article>
+        <article class="ac"><span class="id">AUTH-10</span><span class="title">Going back keeps values</span>
+          <dl><dt>When</dt><dd>the user selects "Back to description"</dd><dt>Then</dt><dd>the describe fields keep their values</dd></dl></article>
+      </div>
+    </section>
+
+    <!-- START -->
+    <section class="feature" id="start" aria-labelledby="h-start">
+      <div class="feature-head"><h2 id="h-start">AI start screen</h2><a href="https://claude.ai/artifact/D4z87xAAiWgYQhvdpFnn3Z#ai-start">Spec</a></div>
+      <div class="acs">
+        <article class="ac"><span class="id">START-01</span><span class="title">Opens on the start screen</span>
+          <dl><dt>When</dt><dd>the user opens AI Assisted RoPA Creation without a source record</dd><dt>Then</dt><dd>they see the title and description, the AI input, three sample pills and History; no conversation yet</dd></dl></article>
+        <article class="ac"><span class="id">START-02</span><span class="title">Input is 58px and grows</span>
+          <dl><dt>Given</dt><dd>the input is empty</dd><dt>Then</dt><dd>it is 58px tall; as text is added it grows to fit up to 200px of text, then scrolls; cleared, it returns to 58px</dd></dl></article>
+        <article class="ac"><span class="id">START-03</span><span class="title">Focus state</span>
+          <dl><dt>When</dt><dd>the user clicks into the input</dd><dt>Then</dt><dd>it turns white with the focus border and a 0 12px 24px shadow (black 14%); the shadow goes when focus leaves</dd></dl></article>
+        <article class="ac"><span class="id">START-04</span><span class="title">Microphone swaps for Send</span>
+          <dl><dt>Given</dt><dd>the input is empty (including on hover or focus)</dd><dt>Then</dt><dd>the right-hand button is the microphone</dd><dt>When</dt><dd>text or a file is added</dd><dt>Then</dt><dd>it becomes the round dark Send button; removing them brings the microphone back</dd></dl></article>
+        <article class="ac"><span class="id">START-05</span><span class="title">Icons stay at the top</span>
+          <dl><dt>When</dt><dd>the input grows</dd><dt>Then</dt><dd>the attach and microphone/Send buttons stay at the top, level with the first line of text</dd></dl></article>
+        <article class="ac"><span class="id">START-06</span><span class="title">Sample pills fill, never send</span>
+          <dl><dt>When</dt><dd>the user selects a sample pill</dd><dt>Then</dt><dd>the input fills with one of that scenario's samples, gains focus with the caret at the end and shows Send; the screen does not change</dd></dl></article>
+        <article class="ac"><span class="id">START-07</span><span class="title">Only Send or Enter moves on</span>
+          <dl><dt>Given</dt><dd>the input has text or a file</dd><dt>When</dt><dd>the user selects Send or presses Enter</dd><dt>Then</dt><dd>the chat and draft view opens with that message; Shift+Enter adds a line instead</dd></dl></article>
+        <article class="ac"><span class="id">START-08</span><span class="title">Template with Tab</span>
+          <dl><dt>Given</dt><dd>the input is empty and focused</dd><dt>When</dt><dd>the user presses Tab</dd><dt>Then</dt><dd>the template "Our [team] collects [data] from [people]…" fills the input with "[team]" selected</dd></dl></article>
+        <article class="ac"><span class="id">START-09</span><span class="title">Attach a document</span>
+          <dl><dt>When</dt><dd>the user attaches a file</dd><dt>Then</dt><dd>a .txt, .md or .csv under 1 MB shows as a removable tag in the input; another type shows "{file} isn't a text file. Attach a .txt, .md or .csv file."; a larger file shows "{file} is over 1 MB." <span class="tag proto">Stand-in</span></dd></dl></article>
+        <article class="ac"><span class="id">START-10</span><span class="title">Dictation</span>
+          <dl><dt>Given</dt><dd>the browser supports speech recognition</dd><dt>When</dt><dd>the user selects the microphone</dd><dt>Then</dt><dd>it shows pressed, the hint reads "Listening… Select the microphone again to stop.", and speech is added to the text; without support the button is disabled with a tooltip</dd></dl></article>
+        <article class="ac"><span class="id">START-11</span><span class="title">Hover and press states</span>
+          <dl><dt>When</dt><dd>the user hovers or presses the attach button, a pill or a History card</dd><dt>Then</dt><dd>it shows the light green hover fill (pills and cards also a green border) and a darker green while pressed; keyboard focus shows a 2px focus ring</dd></dl></article>
+        <article class="ac"><span class="id">START-12</span><span class="title">Sample name carries over</span>
+          <dl><dt>Given</dt><dd>the input holds a sample</dd><dt>When</dt><dd>the user sends it</dd><dt>Then</dt><dd>the record name step is pre-filled with the sample's name</dd></dl></article>
+      </div>
+    </section>
+
+    <!-- HIST -->
+    <section class="feature" id="history" aria-labelledby="h-history">
+      <div class="feature-head"><h2 id="h-history">History</h2><a href="https://claude.ai/artifact/D4z87xAAiWgYQhvdpFnn3Z#ai-start">Spec</a></div>
+      <div class="acs">
+        <article class="ac"><span class="id">HIST-01</span><span class="title">Lists earlier sessions</span>
+          <dl><dt>Then</dt><dd>History shows "History {n} items" and one card per session, newest first: name, completeness badge, summary, Document or Prompt, "Created by" with avatar, and the date as MM/DD/YY</dd></dl></article>
+        <article class="ac"><span class="id">HIST-02</span><span class="title">Badge colour follows completeness</span>
+          <dl><dt>Then</dt><dd>the badge is green at 80% or more, amber from 50%, red below 50%</dd></dl></article>
+        <article class="ac"><span class="id">HIST-03</span><span class="title">New sessions are added and kept current <span class="tag proto">Stand-in</span></span>
+          <dl><dt>Given</dt><dd>the user starts a conversation</dd><dt>Then</dt><dd>a History entry is created and its name, summary and completeness update as the draft changes; it is there after a reload (prototype: this browser only)</dd></dl></article>
+        <article class="ac"><span class="id">HIST-04</span><span class="title">Reopen a session</span>
+          <dl><dt>When</dt><dd>the user selects a History card</dd><dt>Then</dt><dd>the conversation opens and drafts again from that session's description, with its record name, updating the same entry</dd></dl></article>
+      </div>
+    </section>
+
+    <!-- CHAT -->
+    <section class="feature" id="draft" aria-labelledby="h-draft">
+      <div class="feature-head"><h2 id="h-draft">Drafting conversation</h2><a href="https://claude.ai/artifact/D4z87xAAiWgYQhvdpFnn3Z#ai-chat">Spec</a></div>
+      <div class="acs">
+        <article class="ac"><span class="id">CHAT-01</span><span class="title">Too little to draft</span>
+          <dl><dt>Given</dt><dd>the first message is under 60 characters with no readable file</dd><dt>Then</dt><dd>the assistant asks for who the data is about, what's collected and why, tools, retention and storage, and nothing is created</dd></dl></article>
+        <article class="ac"><span class="id">CHAT-02</span><span class="title">Extraction summary</span>
+          <dl><dt>Given</dt><dd>a usable description or document</dd><dt>Then</dt><dd>the reply states how many values and linked items were found and that each value quotes its source</dd></dl></article>
+        <article class="ac"><span class="id">CHAT-03</span><span class="title">Unreadable attachments are named</span>
+          <dl><dt>Given</dt><dd>an attached file isn't plain text</dd><dt>Then</dt><dd>the reply says it can't read that file and which types it reads <span class="tag proto">Stand-in</span></dd></dl></article>
+        <article class="ac"><span class="id">CHAT-04</span><span class="title">Record details in three steps</span>
+          <dl><dt>Given</dt><dd>there's no unresolved duplicate</dd><dt>Then</dt><dd>steps for record name, owning group entity and role replace the composer; Continue stays disabled until name and entity are set; the steps can be closed and reopened with "Add record details" without losing answers</dd></dl></article>
+        <article class="ac"><span class="id">CHAT-05</span><span class="title">Role is pre-selected from the text</span>
+          <dl><dt>Given</dt><dd>the description contains a role cue (e.g. "on behalf of our clients")</dd><dt>Then</dt><dd>that role is pre-selected and the quote is shown as "Suggested: {role}, from “…”"; the user can change it</dd></dl></article>
+        <article class="ac"><span class="id">CHAT-06</span><span class="title">Questions in the skill's order</span>
+          <dl><dt>Then</dt><dd>follow-ups come one at a time: missing items, low-confidence values, warnings by severity, unresolved tools, then values to confirm; each shows "(n to go)" or "(Last one)"</dd></dl></article>
+        <article class="ac"><span class="id">CHAT-07</span><span class="title">Answer, chip or skip</span>
+          <dl><dt>When</dt><dd>the user answers, picks a chip or selects "Skip this question"</dd><dt>Then</dt><dd>the answer updates the record (re-checked immediately) or the field is marked "Skipped. Left for the reviewer."; the next question follows</dd></dl></article>
+        <article class="ac"><span class="id">CHAT-08</span><span class="title">Confirm values</span>
+          <dl><dt>When</dt><dd>the user selects "Yes, that's right" or "Confirm the rest"</dd><dt>Then</dt><dd>that value, or every remaining "Needs review" value, is marked as the user's</dd></dl></article>
+        <article class="ac"><span class="id">CHAT-09</span><span class="title">Stop and edit</span>
+          <dl><dt>When</dt><dd>the user selects Stop while a reply streams</dd><dt>Then</dt><dd>the partial reply is removed, the turn's changes are undone, the message reads "Reply stopped" and can be edited and resent</dd></dl></article>
+        <article class="ac"><span class="id">CHAT-10</span><span class="title">Ready summary</span>
+          <dl><dt>Given</dt><dd>no questions remain</dd><dt>Then</dt><dd>the assistant summarises completeness, required assessments, open checks, review cadence and anything left for the reviewer, and the badge reads "Ready to send"</dd></dl></article>
+        <article class="ac"><span class="id">CHAT-11</span><span class="title">Replies stream <span class="tag proto">Stand-in</span></span>
+          <dl><dt>Then</dt><dd>a thinking indicator shows first, then the reply streams in; with reduced motion it appears without animation</dd></dl></article>
+      </div>
+    </section>
+
+    <!-- PANEL -->
+    <section class="feature" id="panel" aria-labelledby="h-panel">
+      <div class="feature-head"><h2 id="h-panel">Draft panel</h2><a href="https://claude.ai/artifact/D4z87xAAiWgYQhvdpFnn3Z#ai-chat">Spec</a></div>
+      <div class="acs">
+        <article class="ac"><span class="id">PANEL-01</span><span class="title">Layout split</span>
+          <dl><dt>Then</dt><dd>the chat takes 30% of the width (at least 260px) and the draft 70%; at 640px or wider the draft shows fields in two columns and Checks beside Posture</dd></dl></article>
+        <article class="ac"><span class="id">PANEL-02</span><span class="title">Skeleton while creating</span>
+          <dl><dt>When</dt><dd>the first description is sent</dd><dt>Then</dt><dd>the panel shows a skeleton of the whole record and the badge "Creating" until the first reply finishes; screen readers hear "Creating the draft record"</dd></dl></article>
+        <article class="ac"><span class="id">PANEL-03</span><span class="title">Skeleton on changed fields</span>
+          <dl><dt>When</dt><dd>a field, name, entity or role changes after the draft exists</dd><dt>Then</dt><dd>that block shows a skeleton (fields with a teal left edge) for about a second, then the new value; fields appearing for the first time don't flash</dd></dl></article>
+        <article class="ac"><span class="id">PANEL-04</span><span class="title">Provenance is visible</span>
+          <dl><dt>Then</dt><dd>each field shows "Asking now", "From you", "Inherited" or its confidence band; AI values show their evidence quote; missing ones read "Missing"</dd></dl></article>
+        <article class="ac"><span class="id">PANEL-05</span><span class="title">Completeness by role</span>
+          <dl><dt>Then</dt><dd>completeness is scored on Art. 30(1)'s 13 items, or Art. 30(2)'s 7 for processor records; below 80% the bar is warning-coloured with "Below 80%: the dashboard flags the record as incomplete."</dd></dl></article>
+        <article class="ac"><span class="id">PANEL-06</span><span class="title">Remove a linked item</span>
+          <dl><dt>When</dt><dd>the user removes a linked inventory tag</dd><dt>Then</dt><dd>it leaves the record and the checks re-run</dd></dl></article>
+        <article class="ac"><span class="id">PANEL-07</span><span class="title">Checks and posture follow the skill</span>
+          <dl><dt>Then</dt><dd>Checks list the skill's warnings by severity with any recorded answer; Posture lists triggered conditions, required assessments with owners and the review cadence; results match <span class="mono">ropa_check.py</span> (parity test)</dd></dl></article>
+      </div>
+    </section>
+
+    <!-- DUP -->
+    <section class="feature" id="duplicate" aria-labelledby="h-dup">
+      <div class="feature-head"><h2 id="h-dup">Duplicate check</h2><a href="https://claude.ai/artifact/D4z87xAAiWgYQhvdpFnn3Z#ai-chat-duplicate">Spec</a></div>
+      <div class="story"><b>User story</b><span>As a Privacy Program Manager, I want the agent to identify likely duplicate processing activities before I create a new record, so that I avoid creating redundant RoPA entries.</span></div>
+      <div class="acs">
+        <article class="ac"><span class="id">DUP-01</span><span class="title">Checked before anything is created</span>
+          <dl><dt>Given</dt><dd>the user sends a description, attaches a document, or starts from an existing record</dd><dt>Then</dt><dd>the draft is compared with existing processing activities before the record-details step</dd></dl></article>
+        <article class="ac"><span class="id">DUP-02</span><span class="title">Only records the user can view <span class="tag proto">Stand-in</span></span>
+          <dl><dt>Then</dt><dd>the comparison uses only records the user is permitted to view, and never reveals a record outside that scope (prototype: every group entity except APAC)</dd></dl></article>
+        <article class="ac"><span class="id">DUP-03</span><span class="title">Likely duplicate is presented</span>
+          <dl><dt>Given</dt><dd>a record scores 0.33 or more</dd><dt>Then</dt><dd>the best match is shown in caution yellow with its name and ID, a short rationale, a Strong or Likely match label, and the badge "Possible duplicate"</dd></dl></article>
+        <article class="ac"><span class="id">DUP-04</span><span class="title">Overlapping fields are listed</span>
+          <dl><dt>Then</dt><dd>a table shows only the fields that overlap (activity, vendors and systems, data subjects, personal data, clients, owning entity), with this draft's values beside the matched record's</dd></dl></article>
+        <article class="ac"><span class="id">DUP-05</span><span class="title">Three structured actions</span>
+          <dl><dt>Then</dt><dd>the conversation offers Use existing record, Create as local variation with inheritance, and Dismiss duplicate flag as one choice, with Confirm; free text can't stand in for a choice</dd></dl></article>
+        <article class="ac"><span class="id">DUP-06</span><span class="title">Nothing happens until Confirm</span>
+          <dl><dt>Given</dt><dd>a choice is selected but not confirmed</dd><dt>Then</dt><dd>no record is created, linked or inherited from, the draft is unchanged, and Send to Pending inventory stays disabled; Confirm is disabled until a choice is made</dd></dl></article>
+        <article class="ac"><span class="id">DUP-07</span><span class="title">Use existing record</span>
+          <dl><dt>When</dt><dd>the user confirms Use existing record</dd><dt>Then</dt><dd>no record is created or sent, the badge reads "Not created", the panel says "Using {name} (#{id})", and "Start a new record" returns to the start screen</dd></dl></article>
+        <article class="ac"><span class="id">DUP-08</span><span class="title">Local variation inherits</span>
+          <dl><dt>When</dt><dd>the user confirms Create as local variation</dd><dt>Then</dt><dd>the draft shows "Local variation of {name} #{id}"; each shareable field the draft lacks takes the parent's value marked "Inherited"; the user's own values stay; the link and inherited fields go to Data Mapping with the record</dd></dl></article>
+        <article class="ac"><span class="id">DUP-09</span><span class="title">Starting from a record</span>
+          <dl><dt>Given</dt><dd>the user chose Create variation with AI on a record</dd><dt>Then</dt><dd>the check flags that record, the rationale includes "you started from this record", and the same three actions apply</dd></dl></article>
+        <article class="ac"><span class="id">DUP-10</span><span class="title">Dismiss is recorded</span>
+          <dl><dt>When</dt><dd>the user confirms Dismiss duplicate flag</dd><dt>Then</dt><dd>the record continues unlinked, the panel shows "Not a duplicate of {name}", and "Not a duplicate of {name} (#{id}). Flag dismissed by {user}." is sent to the reviewer</dd></dl></article>
+        <article class="ac"><span class="id">DUP-11</span><span class="title">No duplicate found</span>
+          <dl><dt>Given</dt><dd>no record scores 0.33 or more</dd><dt>Then</dt><dd>the assistant says it checked and found no likely duplicates, and record details open</dd></dl></article>
+        <article class="ac"><span class="id">DUP-12</span><span class="title">The card can be hidden</span>
+          <dl><dt>When</dt><dd>the user hides the decision card</dd><dt>Then</dt><dd>the composer returns with "Review likely duplicate", which reopens it; any message sent instead is answered with a prompt to choose and confirm</dd></dl></article>
+      </div>
+    </section>
+
+    <!-- SEND -->
+    <section class="feature" id="send" aria-labelledby="h-send">
+      <div class="feature-head"><h2 id="h-send">Send to Data Mapping</h2><a href="https://claude.ai/artifact/D4z87xAAiWgYQhvdpFnn3Z#ai-chat-send">Spec</a></div>
+      <div class="acs">
+        <article class="ac"><span class="id">SEND-01</span><span class="title">When Send is available</span>
+          <dl><dt>Then</dt><dd>"Send to Pending inventory" is enabled only once the record has a name and group entity, no reply is streaming, and no duplicate decision is pending</dd></dl></article>
+        <article class="ac"><span class="id">SEND-02</span><span class="title">Confirmation first</span>
+          <dl><dt>When</dt><dd>the user selects Send to Pending inventory</dd><dt>Then</dt><dd>a dialog "Send to Pending inventory?" explains that Data Mapping opens in a new tab with the record as a Pending draft to approve; Cancel, Escape, close or an outside click sends nothing</dd></dl></article>
+        <article class="ac"><span class="id">SEND-03</span><span class="title">Hand-off to Data Mapping <span class="tag proto">Stand-in</span></span>
+          <dl><dt>When</dt><dd>the user selects "Send and open Data Mapping"</dd><dt>Then</dt><dd>Data Mapping's Processing activities opens in a new tab with the record added as a Pending row, marked as created with AI, with a confirmation and "Show record"</dd></dl></article>
+        <article class="ac"><span class="id">SEND-04</span><span class="title">Complete package</span>
+          <dl><dt>Then</dt><dd>the record carries every value with its evidence, confidence and provenance, kept relationships, check results, notes and any duplicate decision</dd></dl></article>
+        <article class="ac"><span class="id">SEND-05</span><span class="title">Sent state</span>
+          <dl><dt>Then</dt><dd>the badge reads "Sent", questions stop, and the footer shows "{name} was sent to Data Mapping" with "Open Data Mapping" and "Download JSON"</dd></dl></article>
+        <article class="ac"><span class="id">SEND-06</span><span class="title">Blocked new tab</span>
+          <dl><dt>Given</dt><dd>the browser blocks the new tab</dd><dt>Then</dt><dd>the alert reads "Your browser blocked the new tab. Open Data Mapping to add it to Processing activities." and "Open Data Mapping" completes the hand-off</dd></dl></article>
+        <article class="ac"><span class="id">SEND-07</span><span class="title">No duplicates in Data Mapping</span>
+          <dl><dt>Given</dt><dd>the same package arrives twice (reload, second click)</dd><dt>Then</dt><dd>only one row is created; an invalid package or unknown group entity is refused with a message and nothing is added</dd></dl></article>
+      </div>
+    </section>
+
+    <!-- A11Y -->
+    <section class="feature" id="a11y" aria-labelledby="h-a11y">
+      <div class="feature-head"><h2 id="h-a11y">Accessibility</h2></div>
+      <div class="acs">
+        <article class="ac"><span class="id">A11Y-01</span><span class="title">Keyboard reachable</span>
+          <dl><dt>Then</dt><dd>every control on every screen works from the keyboard and shows a visible focus ring</dd></dl></article>
+        <article class="ac"><span class="id">A11Y-02</span><span class="title">Focus moves with the flow</span>
+          <dl><dt>Then</dt><dd>opening the record-details steps or the duplicate card moves focus into it; closing either returns focus to the composer; the dialog traps focus and returns it to Send</dd></dl></article>
+        <article class="ac"><span class="id">A11Y-03</span><span class="title">Everything is named</span>
+          <dl><dt>Then</dt><dd>icon-only buttons, the AI input, the Demo mode switch, row checkboxes ("Select {name}") and row menus ("Actions for {name}") have accessible names</dd></dl></article>
+        <article class="ac"><span class="id">A11Y-04</span><span class="title">Changes are announced</span>
+          <dl><dt>Then</dt><dd>loading and status messages (drafting, creating, sent, attachment errors, the start-screen hint) are in live or status regions; skeletons are hidden from screen readers</dd></dl></article>
+        <article class="ac"><span class="id">A11Y-05</span><span class="title">Reduced motion</span>
+          <dl><dt>Given</dt><dd>the user prefers reduced motion</dd><dt>Then</dt><dd>sidebar, skeleton shimmer, streaming and the dictation pulse don't animate</dd></dl></article>
+        <article class="ac"><span class="id">A11Y-06</span><span class="title">Colour isn't the only signal</span>
+          <dl><dt>Then</dt><dd>confidence, status, completeness and caution states also carry a text label</dd></dl></article>
+      </div>
+    </section>
+
+    <footer>Written against the running prototype at commit 2ae6553, 29 October 2026. Criteria marked Stand-in pass in the prototype through a mock that production must replace; see "Prototype stand-ins" in the screen specs.</footer>
+  </main>
+</div>
+
+<script>
+  (function () {
+    var acs = Array.prototype.slice.call(document.querySelectorAll('article.ac'));
+    document.getElementById('total').textContent = acs.length + ' criteria across ' + document.querySelectorAll('section.feature').length + ' features';
+    document.querySelectorAll('section.feature').forEach(function (s) {
+      var n = s.querySelectorAll('article.ac').length;
+      var span = document.createElement('span'); span.className = 'count'; span.textContent = n + ' criteria';
+      s.querySelector('.feature-head').appendChild(span);
+    });
+
+    function toMarkdown() {
+      var out = ['# RoPA prototype — acceptance criteria', ''];
+      document.querySelectorAll('section.feature').forEach(function (s) {
+        out.push('## ' + s.querySelector('h2').textContent.trim(), '');
+        var story = s.querySelector('.story span');
+        if (story) out.push('> ' + story.textContent.trim(), '');
+        s.querySelectorAll('article.ac').forEach(function (a) {
+          var title = a.querySelector('.title').cloneNode(true);
+          var tag = title.querySelector('.tag'); var stand = !!tag; if (tag) tag.remove();
+          out.push('**' + a.querySelector('.id').textContent.trim() + ' — ' + title.textContent.trim() + '**' + (stand ? ' _(prototype stand-in)_' : ''));
+          var dts = a.querySelectorAll('dt'), dds = a.querySelectorAll('dd');
+          for (var i = 0; i < dts.length; i++) {
+            var dd = dds[i].cloneNode(true); var t = dd.querySelector('.tag'); if (t) t.remove();
+            out.push('- **' + dts[i].textContent.trim() + '** ' + dd.textContent.replace(/\s+/g, ' ').trim());
+          }
+          out.push('');
+        });
+      });
+      return out.join('\n');
+    }
+
+    var status = document.getElementById('copied');
+    document.getElementById('copy-all').addEventListener('click', function () {
+      var md = toMarkdown();
+      function fallback() {
+        var ta = document.createElement('textarea'); ta.value = md; ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select();
+        var ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta);
+        status.textContent = ok ? 'Copied' : 'Copy failed. Select the text instead.';
+      }
+      try {
+        navigator.clipboard.writeText(md).then(function () { status.textContent = 'Copied'; }, fallback);
+      } catch (e) { fallback(); }
+    });
+  })();
+</script>

@@ -1,0 +1,513 @@
+<title>RoPA OneCore Components</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one reading column; a sticky filter bar over the main inventory table, then reference lists. */
+  :root {
+    --bg: #ffffff;
+    --surface: #f6f7f8;
+    --fg: #080916;
+    --muted: #5f6675;
+    --line: #dde1e6;
+    --accent: #00805a;
+    --accent-soft: #e6f7ef;
+    --caution: #8a5a00;
+    --caution-soft: #fff6e0;
+    --chip-bg: #ffffff;
+    --font-body: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d0f14; --surface: #161a21; --fg: #eef0f3; --muted: #9aa3b2; --line: #2a303a;
+      --accent: #3fd39b; --accent-soft: #10302a; --caution: #f2c25b; --caution-soft: #2e2510; --chip-bg: #161a21;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d0f14; --surface: #161a21; --fg: #eef0f3; --muted: #9aa3b2; --line: #2a303a;
+    --accent: #3fd39b; --accent-soft: #10302a; --caution: #f2c25b; --caution-soft: #2e2510; --chip-bg: #161a21;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 40px 64px;
+    display: grid;
+    gap: 40px;
+  }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+  h1 { font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+  h2 { font-size: 20px; font-weight: 600; }
+  h3 { font-size: 15px; font-weight: 600; }
+  p { margin: 0; max-width: 68ch; }
+  code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+  code { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; white-space: nowrap; }
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  header { display: grid; gap: 12px; }
+  .eyebrow { font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+  .facts { display: flex; flex-wrap: wrap; gap: 8px 24px; color: var(--muted); font-size: 13px; }
+  .facts b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  section { display: grid; gap: 16px; min-width: 0; }
+  .lede { color: var(--muted); }
+
+  .howto { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .howto div { border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: grid; gap: 6px; min-width: 0; }
+  .howto p { font-size: 13px; color: var(--muted); }
+  .howto pre { margin: 0; overflow-x: auto; font-family: var(--font-mono); font-size: 12px; background: var(--surface); border-radius: 4px; padding: 8px 10px; }
+
+  .filters {
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+    background: var(--bg); padding-block: 12px; border-bottom: 1px solid var(--line);
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  }
+  .filters label { font-size: 13px; color: var(--muted); margin-right: 4px; }
+  .chip {
+    font: inherit; font-size: 13px; padding: 4px 12px; border-radius: 999px;
+    border: 1px solid var(--line); background: var(--chip-bg); color: var(--fg); cursor: pointer;
+  }
+  .chip:hover { border-color: var(--accent); }
+  .chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--fg); font-weight: 500; }
+  #q {
+    margin-left: auto; font: inherit; font-size: 13px; padding: 5px 10px; min-width: 0; width: 220px; max-width: 100%;
+    border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg);
+  }
+  .count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  thead th { background: var(--surface); font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.02em; white-space: nowrap; }
+  tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
+  tbody th { font-weight: 600; white-space: nowrap; }
+  td.sel code { display: inline-block; margin: 0 4px 4px 0; }
+  .group-row th { background: var(--bg); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); padding-top: 16px; }
+  .screens { display: flex; flex-wrap: wrap; gap: 4px; }
+  .s { font-size: 11.5px; padding: 1px 8px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); white-space: nowrap; }
+  .usage { color: var(--muted); }
+  .usage b { color: var(--fg); font-weight: 500; }
+
+  .icons { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .custom { display: grid; gap: 10px; }
+  .custom article {
+    border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px;
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 6px 24px;
+  }
+  .custom article.swap { background: var(--caution-soft); border-color: var(--caution); }
+  .custom h3 { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .flag { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--caution); }
+  .custom p { font-size: 13.5px; }
+  .custom .rec { color: var(--muted); }
+  .custom .rec b { color: var(--fg); font-weight: 500; }
+
+  .tokens td:first-child { white-space: nowrap; }
+  footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 16px; }
+
+  @media (max-width: 640px) {
+    h1 { font-size: 24px; }
+    #q { margin-left: 0; width: 100%; }
+    .custom article { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Developer handoff · AI-assisted RoPA prototype</span>
+    <h1>OneCore components in the RoPA prototype</h1>
+    <p class="lede">Every OneCore component the prototype uses, where it appears, and the variants and sizes it's set to. Use it to find each piece in OneCore. The last sections list what was built by hand because OneCore has no equivalent, and the tokens the design leans on. See also the <a href="https://claude.ai/artifact/D4z87xAAiWgYQhvdpFnn3Z">screen specs</a> and <a href="https://claude.ai/artifact/LD48wPnfvdoxPJN9E1Fn4B">acceptance criteria</a>.</p>
+    <div class="facts">
+      <span>OneCore <b>0.7.0</b></span>
+      <span><b>26</b> entry points</span>
+      <span><b>6</b> screens</span>
+      <span><b>37</b> icons</span>
+      <span>Repo <span class="mono">KCM-OT/ai-ropa-corie-onecore</span></span>
+      <span>Live <a href="https://ai-ropa-corie-onecore.vercel.app">ai-ropa-corie-onecore.vercel.app</a></span>
+    </div>
+  </header>
+
+  <section aria-labelledby="howto-title">
+    <h2 id="howto-title">Finding a component in OneCore</h2>
+    <div class="howto">
+      <div>
+        <h3>Import</h3>
+        <p>One entry point per component. Never import from the package root.</p>
+        <pre>import { OcButton } from '@onetrust/onecore/button';</pre>
+      </div>
+      <div>
+        <h3>Docs and rules</h3>
+        <p>Shipped in the package. The slug is the entry point's last segment.</p>
+        <pre>npx onecore docs dialog
+npx onecore rules dialog</pre>
+      </div>
+      <div>
+        <h3>Icons</h3>
+        <p>Tree-shaken: register each icon once, or it renders nothing.</p>
+        <pre>provideOcIcons([paperclip, xmark, …])</pre>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="inventory-title">
+    <h2 id="inventory-title">Component inventory</h2>
+    <div class="filters" role="group" aria-label="Filter by screen">
+      <label for="q">Screen</label>
+      <button type="button" class="chip" data-screen="all" aria-pressed="true">All</button>
+      <button type="button" class="chip" data-screen="shell" aria-pressed="false">App shell</button>
+      <button type="button" class="chip" data-screen="pa" aria-pressed="false">Processing activities</button>
+      <button type="button" class="chip" data-screen="pending" aria-pressed="false">Pending inventory</button>
+      <button type="button" class="chip" data-screen="author" aria-pressed="false">Author with AI</button>
+      <button type="button" class="chip" data-screen="start" aria-pressed="false">AI Assisted · start</button>
+      <button type="button" class="chip" data-screen="chat" aria-pressed="false">AI Assisted · chat &amp; draft</button>
+      <input id="q" type="search" placeholder="Search components" aria-label="Search components">
+      <span class="count" id="count" aria-live="polite"></span>
+    </div>
+
+    <div class="table-scroll">
+      <table id="inventory">
+        <thead>
+          <tr><th scope="col">Component</th><th scope="col">Entry point</th><th scope="col">Selectors used</th><th scope="col">In this design</th><th scope="col">Screens</th></tr>
+        </thead>
+        <tbody>
+          <tr class="group-row"><th colspan="5" scope="colgroup">Actions</th></tr>
+          <tr data-screens="shell pa pending author chat">
+            <th scope="row">Button</th><td><code>button</code></td>
+            <td class="sel"><code>button[oc-button]</code><code>a[oc-button]</code></td>
+            <td class="usage">Variants <b>primary</b>, <b>secondary</b>, <b>tertiary</b>, <b>accent</b>; size <b>sm</b>. Add processing activity, Send to Pending inventory, Open Data Mapping, Add record details, dialog actions, Ask Copilot.</td>
+            <td><div class="screens"><span class="s">App shell</span><span class="s">Processing activities</span><span class="s">Pending inventory</span><span class="s">Author with AI</span><span class="s">Chat &amp; draft</span></div></td>
+          </tr>
+          <tr data-screens="shell pa pending chat">
+            <th scope="row">Icon button</th><td><code>icon-button</code></td>
+            <td class="sel"><code>button[oc-icon-button]</code></td>
+            <td class="usage">Variants <b>inverse</b> (dark sidebar), <b>tertiary</b>, <b>secondary</b>, <b>primary</b>; sizes <b>sm</b>, <b>xs</b>. Sidebar search and collapse, notifications, settings, help, row actions, jump to latest, hide duplicate card.</td>
+            <td><div class="screens"><span class="s">App shell</span><span class="s">Processing activities</span><span class="s">Pending inventory</span><span class="s">Chat &amp; draft</span></div></td>
+          </tr>
+          <tr data-screens="pa pending">
+            <th scope="row">Menu</th><td><code>menu</code></td>
+            <td class="sel"><code>oc-menu</code><code>[ocMenuTrigger]</code><code>button[oc-menu-item]</code><code>oc-menu-separator</code></td>
+            <td class="usage">Add processing activity menu, the header overflow menu and row action menus. Items use <b>disabled</b> and <b>destructive</b> (Archive).</td>
+            <td><div class="screens"><span class="s">Processing activities</span><span class="s">Pending inventory</span></div></td>
+          </tr>
+
+          <tr class="group-row"><th colspan="5" scope="colgroup">Forms and inputs</th></tr>
+          <tr data-screens="pa pending author chat">
+            <th scope="row">Input</th><td><code>input</code></td>
+            <td class="sel"><code>oc-input</code></td>
+            <td class="usage">Size <b>sm</b>. Table search, the record-name step, Author's fields.</td>
+            <td><div class="screens"><span class="s">Processing activities</span><span class="s">Pending inventory</span><span class="s">Author with AI</span><span class="s">Chat &amp; draft</span></div></td>
+          </tr>
+          <tr data-screens="author chat">
+            <th scope="row">Textarea</th><td><code>textarea</code></td>
+            <td class="sel"><code>textarea[oc-textarea]</code></td>
+            <td class="usage">Author's description field; the chat composer's message field.</td>
+            <td><div class="screens"><span class="s">Author with AI</span><span class="s">Chat &amp; draft</span></div></td>
+          </tr>
+          <tr data-screens="pa author chat">
+            <th scope="row">Select</th><td><code>select</code></td>
+            <td class="sel"><code>oc-select</code><code>oc-select-option</code></td>
+            <td class="usage">Size <b>sm</b>. Saved views, owning group entity (Author and the chat's record-details step).</td>
+            <td><div class="screens"><span class="s">Processing activities</span><span class="s">Author with AI</span><span class="s">Chat &amp; draft</span></div></td>
+          </tr>
+          <tr data-screens="pa pending">
+            <th scope="row">Native select</th><td><code>select-native</code></td>
+            <td class="sel"><code>oc-select-native</code></td>
+            <td class="usage">Size <b>sm</b>. Rows-per-page picker in the shared table footer.</td>
+            <td><div class="screens"><span class="s">Processing activities</span><span class="s">Pending inventory</span></div></td>
+          </tr>
+          <tr data-screens="author chat">
+            <th scope="row">Radio group</th><td><code>radio</code></td>
+            <td class="sel"><code>oc-radio-group</code><code>button[oc-radio-item]</code></td>
+            <td class="usage">Orientation <b>vertical</b> and <b>horizontal</b>. Processing role; the duplicate decision (Use existing record, Create as local variation, Dismiss).</td>
+            <td><div class="screens"><span class="s">Author with AI</span><span class="s">Chat &amp; draft</span></div></td>
+          </tr>
+          <tr data-screens="pa">
+            <th scope="row">Checkbox</th><td><code>checkbox</code></td>
+            <td class="sel"><code>button[oc-checkbox]</code></td>
+            <td class="usage">Row and select-all checkboxes in the records table.</td>
+            <td><div class="screens"><span class="s">Processing activities</span></div></td>
+          </tr>
+          <tr data-screens="shell">
+            <th scope="row">Switch</th><td><code>switch</code></td>
+            <td class="sel"><code>button[oc-switch]</code></td>
+            <td class="usage">Demo mode toggle at the foot of the sidebar. The track is recoloured to the brand green with <code>--oc-muted: var(--oc-brand)</code>.</td>
+            <td><div class="screens"><span class="s">App shell</span></div></td>
+          </tr>
+          <tr data-screens="author">
+            <th scope="row">Form field</th><td><code>form-field</code></td>
+            <td class="sel"><code>oc-form-field</code><code>label[oc-label]</code><code>p[oc-description]</code><code>p[oc-error]</code></td>
+            <td class="usage">Labels, help text and required-field errors on Author's form.</td>
+            <td><div class="screens"><span class="s">Author with AI</span></div></td>
+          </tr>
+
+          <tr class="group-row"><th colspan="5" scope="colgroup">Navigation and overlays</th></tr>
+          <tr data-screens="pa pending">
+            <th scope="row">Pagination</th><td><code>pagination</code></td>
+            <td class="sel"><code>oc-pagination</code></td>
+            <td class="usage">Wrapped by the app's <span class="mono">TableFooter</span> with a row count and page-size picker.</td>
+            <td><div class="screens"><span class="s">Processing activities</span><span class="s">Pending inventory</span></div></td>
+          </tr>
+          <tr data-screens="author">
+            <th scope="row">Path</th><td><code>path</code></td>
+            <td class="sel"><code>oc-path</code><code>oc-path-step</code></td>
+            <td class="usage">Two-step progress: Describe the activity, Review the draft.</td>
+            <td><div class="screens"><span class="s">Author with AI</span></div></td>
+          </tr>
+          <tr data-screens="chat">
+            <th scope="row">Dialog</th><td><code>dialog</code></td>
+            <td class="sel"><code>oc-dialog</code><code>[ocDialogTrigger]</code><code>oc-dialog-header</code><code>[ocDialogTitle]</code><code>[ocDialogDescription]</code><code>oc-dialog-footer</code></td>
+            <td class="usage">Default size <b>md</b>. "Send to Pending inventory?" confirmation before the record goes to Data Mapping.</td>
+            <td><div class="screens"><span class="s">Chat &amp; draft</span></div></td>
+          </tr>
+
+          <tr class="group-row"><th colspan="5" scope="colgroup">Feedback and status</th></tr>
+          <tr data-screens="pa pending author chat">
+            <th scope="row">Alert</th><td><code>alert</code></td>
+            <td class="sel"><code>oc-alert</code></td>
+            <td class="usage">Intents <b>success</b> and <b>info</b>; size <b>sm</b>; some not <b>dismissible</b>. "Sent to Data Mapping", "Using existing record", page notices.</td>
+            <td><div class="screens"><span class="s">Processing activities</span><span class="s">Pending inventory</span><span class="s">Author with AI</span><span class="s">Chat &amp; draft</span></div></td>
+          </tr>
+          <tr data-screens="pa pending author start chat">
+            <th scope="row">Badge</th><td><code>badge</code></td>
+            <td class="sel"><code>oc-badge</code></td>
+            <td class="usage">Size <b>sm</b>; colours <b>success</b>, <b>warning</b>, <b>destructive</b>, <b>purple</b>, <b>blue</b>, <b>teal</b>. Record status, draft state (Drafting, Possible duplicate, Sent), From you / Inherited, History completeness.</td>
+            <td><div class="screens"><span class="s">Processing activities</span><span class="s">Pending inventory</span><span class="s">Author with AI</span><span class="s">Start</span><span class="s">Chat &amp; draft</span></div></td>
+          </tr>
+          <tr data-screens="author chat">
+            <th scope="row">Status</th><td><code>status</code></td>
+            <td class="sel"><code>oc-status</code></td>
+            <td class="usage">Size <b>sm</b>. Confidence on each AI value: High confidence (success), Needs review (warning), Low confidence (error).</td>
+            <td><div class="screens"><span class="s">Author with AI</span><span class="s">Chat &amp; draft</span></div></td>
+          </tr>
+          <tr data-screens="chat">
+            <th scope="row">Progress</th><td><code>progress</code></td>
+            <td class="sel"><code>oc-progress</code></td>
+            <td class="usage">Size <b>sm</b>; variant <b>success</b>, or <b>warning</b> below 80%. Record completeness.</td>
+            <td><div class="screens"><span class="s">Chat &amp; draft</span></div></td>
+          </tr>
+          <tr data-screens="chat">
+            <th scope="row">Skeleton</th><td><code>skeleton</code></td>
+            <td class="sel"><code>oc-skeleton</code></td>
+            <td class="usage">Whole-record placeholder while the first draft is built; then on any field whose value changes, for about a second.</td>
+            <td><div class="screens"><span class="s">Chat &amp; draft</span></div></td>
+          </tr>
+          <tr data-screens="author">
+            <th scope="row">Loading</th><td><code>loading</code></td>
+            <td class="sel"><code>oc-loading</code></td>
+            <td class="usage">Size <b>lg</b>. While the draft is extracted.</td>
+            <td><div class="screens"><span class="s">Author with AI</span></div></td>
+          </tr>
+
+          <tr class="group-row"><th colspan="5" scope="colgroup">Data display</th></tr>
+          <tr data-screens="author start chat">
+            <th scope="row">Tag</th><td><code>tag</code></td>
+            <td class="sel"><code>oc-tag</code></td>
+            <td class="usage">Size <b>sm</b>, <b>removable</b>; colour by type (vendor, asset, personal data, Art. 9 data). Linked inventory, posture conditions, the attached file on the start screen.</td>
+            <td><div class="screens"><span class="s">Author with AI</span><span class="s">Start</span><span class="s">Chat &amp; draft</span></div></td>
+          </tr>
+          <tr data-screens="shell pa pending start chat">
+            <th scope="row">Avatar</th><td><code>avatar</code></td>
+            <td class="sel"><code>oc-avatar</code></td>
+            <td class="usage">Size <b>sm</b>, initials. Signed-in user, record owners, message authors, History "Created by".</td>
+            <td><div class="screens"><span class="s">App shell</span><span class="s">Processing activities</span><span class="s">Pending inventory</span><span class="s">Start</span><span class="s">Chat &amp; draft</span></div></td>
+          </tr>
+          <tr data-screens="author">
+            <th scope="row">Card</th><td><code>card</code></td>
+            <td class="sel"><code>oc-card</code><code>oc-card-header</code><code>oc-card-title</code><code>oc-card-description</code><code>oc-card-content</code><code>oc-card-footer</code></td>
+            <td class="usage">The describe and review panels.</td>
+            <td><div class="screens"><span class="s">Author with AI</span></div></td>
+          </tr>
+          <tr data-screens="shell pa pending author start chat">
+            <th scope="row">Icon</th><td><code>icon</code></td>
+            <td class="sel"><code>oc-icon</code></td>
+            <td class="usage">Registered once with <span class="mono">provideOcIcons</span>; the 37 names are listed below.</td>
+            <td><div class="screens"><span class="s">All screens</span></div></td>
+          </tr>
+
+          <tr class="group-row"><th colspan="5" scope="colgroup">AI assistant</th></tr>
+          <tr data-screens="chat">
+            <th scope="row">Assistant</th><td><code>assistant</code></td>
+            <td class="sel"><code>oc-assistant-thread</code><code>oc-assistant-message</code><code>oc-assistant-composer</code><code>oc-assistant-steps</code><code>oc-assistant-thinking</code><code>button[oc-assistant-suggestion]</code></td>
+            <td class="usage">The whole conversation: thread, messages, composer, record-details steps, follow-up chips. Sixteen parts; each is listed below.</td>
+            <td><div class="screens"><span class="s">Chat &amp; draft</span></div></td>
+          </tr>
+          <tr data-screens="chat">
+            <th scope="row">Choreography</th><td><code>choreography</code></td>
+            <td class="sel"><code>[ocStream]</code></td>
+            <td class="usage">Streams each assistant reply word by word. Needs <span class="mono">provideChoreography({ reducedMotion: 'auto' })</span> in the app config.</td>
+            <td><div class="screens"><span class="s">Chat &amp; draft</span></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="count" id="empty" hidden>No components match.</p>
+  </section>
+
+  <section aria-labelledby="assistant-title">
+    <h2 id="assistant-title">Assistant parts used</h2>
+    <p class="lede">All from <code>@onetrust/onecore/assistant</code>. OneCore's assistant rules (AST-01 to AST-27) apply; <span class="mono">npx onecore rules assistant</span> lists them.</p>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th scope="col">Class</th><th scope="col">Selector</th><th scope="col">What it does here</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">OcAssistantThread</th><td><code>oc-assistant-thread</code></td><td>The conversation column (30% of the width).</td></tr>
+          <tr><th scope="row">OcAssistantViewport</th><td><code>[ocAssistantViewport]</code></td><td>Scrolling message area; reports whether it's at the bottom.</td></tr>
+          <tr><th scope="row">OcAssistantMessage</th><td><code>oc-assistant-message</code></td><td>User and assistant turns, with Edit on the newest user turn.</td></tr>
+          <tr><th scope="row">OcAssistantThinking</th><td><code>oc-assistant-thinking</code></td><td>Shown before a reply starts streaming.</td></tr>
+          <tr><th scope="row">OcAssistantScrollToBottom</th><td><code>button[ocAssistantScrollToBottom]</code></td><td>"Jump to latest" when scrolled up.</td></tr>
+          <tr><th scope="row">OcAssistantComposer</th><td><code>oc-assistant-composer</code></td><td>Message box; one file attachment, 1 MB limit.</td></tr>
+          <tr><th scope="row">OcAssistantInput</th><td><code>textarea[ocAssistantInput]</code></td><td>The composer's text field.</td></tr>
+          <tr><th scope="row">OcAssistantActions</th><td><code>[oc-assistant-actions]</code></td><td>The composer's button row.</td></tr>
+          <tr><th scope="row">OcAssistantAttach</th><td><code>button[ocAssistantAttach]</code></td><td>Attach a .txt, .md or .csv file.</td></tr>
+          <tr><th scope="row">OcAssistantAttachmentTray</th><td><code>[oc-assistant-attachment-tray]</code></td><td>Shows the attached file before sending.</td></tr>
+          <tr><th scope="row">OcAssistantSubmit</th><td><code>button[ocAssistantSubmit]</code></td><td>Send.</td></tr>
+          <tr><th scope="row">OcAssistantStop</th><td><code>button[ocAssistantStop]</code></td><td>Replaces Send while a reply streams.</td></tr>
+          <tr><th scope="row">OcAssistantSuggestion</th><td><code>button[oc-assistant-suggestion]</code></td><td>Answer chips (Skip this question, Confirm, legal bases…). The app handles the click.</td></tr>
+          <tr><th scope="row">OcAssistantSteps</th><td><code>oc-assistant-steps</code></td><td>Record details in three steps: name, group entity, role. Replaces the composer while open.</td></tr>
+          <tr><th scope="row">OcAssistantStep</th><td><code>ng-template[ocAssistantStep]</code></td><td>One step's content.</td></tr>
+          <tr><th scope="row">OcAssistantStepTitle</th><td><code>[ocAssistantStepTitle]</code></td><td>Each step's question.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="icons-title">
+    <h2 id="icons-title">Icons registered</h2>
+    <p class="lede">From <code>@onetrust/onecore/icon</code>, used in templates by their kebab-case name (<code>ai-sparkles</code>, <code>paper-plane</code>…).</p>
+    <div class="icons">
+      <code>ai-sparkles</code><code>arrow-down</code><code>arrow-down-to-bracket</code><code>arrow-up</code><code>arrow-up-right-from-square</code><code>arrows-rotate</code><code>arrows-v</code><code>bell</code><code>buildings</code><code>chart-column</code><code>check</code><code>chevron-down</code><code>chevron-left</code><code>circle-check</code><code>circle-stop</code><code>clipboard-list</code><code>code-branch</code><code>columns-3</code><code>comments</code><code>cubes</code><code>ellipsis</code><code>file-lines</code><code>file-magnifying-glass</code><code>gauge</code><code>gear</code><code>layer-group</code><code>magnifying-glass</code><code>paper-plane</code><code>paperclip</code><code>plus</code><code>question-circle</code><code>sidebar-left</code><code>sliders</code><code>sparkles</code><code>triangle-exclamation</code><code>wrench</code><code>xmark</code>
+    </div>
+  </section>
+
+  <section aria-labelledby="custom-title">
+    <h2 id="custom-title">Built by hand</h2>
+    <p class="lede">OneCore 0.7.0 has no component for these, so they're native HTML styled with <code>--oc-*</code> tokens. Highlighted items have a OneCore option the build should use instead.</p>
+    <div class="custom">
+      <article class="swap">
+        <h3>Microphone button on the start screen <span class="flag">Use OneCore</span></h3>
+        <p>A hand-drawn microphone glyph on a plain button, using the browser's speech recognition.</p>
+        <p class="rec"><b>Use</b> <code>button[ocAssistantDictation]</code> from the assistant entry point, which this prototype doesn't use yet.</p>
+      </article>
+      <article class="swap">
+        <h3>AI input on the start screen <span class="flag">Check with OneCore</span></h3>
+        <p>Figma Main-AI-Prompt: grey rounded field, paperclip left, microphone that becomes a round dark Send button once there's text, 58px minimum height growing with the text, white with a floating shadow when focused.</p>
+        <p class="rec"><b>Consider</b> <code>oc-assistant-composer</code> with <code>button[ocAssistantAttach]</code>, <code>button[ocAssistantDictation]</code> and <code>button[ocAssistantSubmit]</code>, restyled to the design, so attachments, dictation and keyboard handling come from OneCore.</p>
+      </article>
+      <article class="swap">
+        <h3>Sample prompt pills <span class="flag">Check with OneCore</span></h3>
+        <p>White rounded pills that fill the AI input with a sample; they don't send it.</p>
+        <p class="rec"><b>Consider</b> <code>button[oc-assistant-suggestion]</code> with fill-on-click (<span class="mono">setPromptOnClick</span>) once the start input is a composer.</p>
+      </article>
+      <article>
+        <h3>App shell: top bar and side navigation</h3>
+        <p>Dark sidebar with logo, search, collapse animation, grouped nav with icons, Demo mode switch; top bar with Ask Copilot, notifications, tenant and user.</p>
+        <p class="rec">OneCore has no side nav or app bar. Styled with tokens, plus one local token for the near-black background.</p>
+      </article>
+      <article>
+        <h3>Page header</h3>
+        <p>Title, breadcrumb and header actions.</p>
+        <p class="rec">No OneCore page header. <span class="mono">shell/page-header.ts</span>.</p>
+      </article>
+      <article>
+        <h3>Data tables</h3>
+        <p>Processing activities and Pending inventory: sortable headers, selection, row menus, footer.</p>
+        <p class="rec">No OneCore table. Native <span class="mono">&lt;table&gt;</span> with the shared <span class="mono">.data-table</span> styles in <span class="mono">src/styles.scss</span>; footer wraps <span class="mono">oc-pagination</span>.</p>
+      </article>
+      <article>
+        <h3>History cards</h3>
+        <p>Name, completeness badge, one-line summary, Document or Prompt, creator avatar, date. The whole card opens the session.</p>
+        <p class="rec">Native buttons. <span class="mono">oc-card</span> isn't interactive, so check with OneCore before swapping.</p>
+      </article>
+      <article>
+        <h3>Draft record panel</h3>
+        <p>Record basics, completeness, field list with evidence quotes, linked inventory, checks and posture.</p>
+        <p class="rec">Layout built from tokens; uses Badge, Status, Tag, Progress, Skeleton and Alert inside.</p>
+      </article>
+      <article>
+        <h3>Likely-duplicate panel and decision card</h3>
+        <p>Caution panel with the matched record, rationale and overlapping-fields table; a card in the chat with three choices and Confirm.</p>
+        <p class="rec">Caution yellow from <span class="mono">--oc-supportive-yellow</span> tokens; the card uses Radio group and Button.</p>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="tokens-title">
+    <h2 id="tokens-title">Tokens the design depends on</h2>
+    <div class="table-scroll">
+      <table class="tokens">
+        <thead><tr><th scope="col">Token</th><th scope="col">Where</th></tr></thead>
+        <tbody>
+          <tr><td><code>--oc-supportive-yellow</code>, <code>-light</code>, <code>-on</code></td><td>Likely-duplicate panel and card (caution yellow).</td></tr>
+          <tr><td><code>--oc-shadow-floating</code></td><td>Start-screen AI input while focused (0 12px 24px, black at 14%).</td></tr>
+          <tr><td><code>--oc-foreground</code>, <code>--oc-primary-foreground</code></td><td>Round Send button: <span class="mono">#080916</span> with a white icon.</td></tr>
+          <tr><td><code>--oc-item-hover</code>, <code>--oc-item-active</code></td><td>Start-screen hover and pressed states (paperclip tile, pills, History cards).</td></tr>
+          <tr><td><code>--oc-secondary-hover</code></td><td>The start-screen AI input's resting grey.</td></tr>
+          <tr><td><code>--oc-brand</code></td><td>Active nav marker, Demo mode switch track.</td></tr>
+          <tr><td><code>--app-sidebar-bg</code> <span class="usage">(local)</span></td><td>Sidebar background (#0a0a0a). OneCore has no token this dark.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    Generated from the source on 29 October 2026 (commit 2ae6553). Everything listed is imported from <span class="mono">@onetrust/onecore</span> in <span class="mono">src/app</span>.
+  </footer>
+</div>
+
+<script>
+  (function () {
+    var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
+    var rows = Array.prototype.slice.call(document.querySelectorAll('#inventory tbody tr'));
+    var q = document.getElementById('q');
+    var count = document.getElementById('count');
+    var empty = document.getElementById('empty');
+    var screen = 'all';
+
+    function apply() {
+      var term = q.value.trim().toLowerCase();
+      var shown = 0;
+      var groupRow = null, groupHas = false;
+      rows.forEach(function (row) {
+        if (row.classList.contains('group-row')) {
+          if (groupRow) groupRow.hidden = !groupHas;
+          groupRow = row; groupHas = false;
+          return;
+        }
+        var inScreen = screen === 'all' || (row.dataset.screens || '').split(' ').indexOf(screen) !== -1;
+        var inText = !term || row.textContent.toLowerCase().indexOf(term) !== -1;
+        row.hidden = !(inScreen && inText);
+        if (!row.hidden) { shown++; groupHas = true; }
+      });
+      if (groupRow) groupRow.hidden = !groupHas;
+      count.textContent = shown + (shown === 1 ? ' component' : ' components');
+      empty.hidden = shown !== 0;
+    }
+
+    chips.forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        screen = chip.dataset.screen;
+        chips.forEach(function (c) { c.setAttribute('aria-pressed', String(c === chip)); });
+        apply();
+      });
+    });
+    q.addEventListener('input', apply);
+    apply();
+  })();
+</script>
