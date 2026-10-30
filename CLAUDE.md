@@ -33,10 +33,11 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
 - `/processing-activities/new`: Author with AI. Describe → rule-based draft (`data/extract.ts`) →
   review suggested values, follow-up questions and linked inventory → send to Pending inventory.
 - `/pending-inventory`: pending records plus AI drafts (from `DraftsStore`, kept in localStorage).
-- `/ai-assisted-ropa`: AI Assisted RoPA Creation (prototype-only, top of the sidebar and in the
-  Add processing activity menu). It opens on a start screen (`pages/ai-assisted/start/`, Figma
-  node 2241:5516) built from OneCore parts: an `oc-assistant-composer` in a card (attach a
-  .txt/.md/.csv, Enter or Send sends; the composer needs some text), `oc-assistant-suggestion`
+- `/ai-assisted-ropa`: AI Assisted RoPA Creation, the home page (`/` redirects here). Reached from
+  the sidebar's New chat and Chats, and from the Add processing activity menu. It opens on a
+  start screen (`pages/ai-assisted/start/`, Figma node 2241:5516) built from OneCore parts: an
+  `oc-assistant-composer` in a card (attach a .txt/.md/.csv, Enter or Send sends; the composer needs
+  some text), `oc-assistant-suggestion`
   sample chips (they fill the composer with a random variant and never send), and Pending
   (`data/authoring-history.ts`: example sessions plus those started in this browser, in
   localStorage, soonest due first, each with open questions and a due date two weeks after it
@@ -70,6 +71,12 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
   in the URL fragment (`#ropa-import=…`, base64url). That page validates it and adds it as a pending
   record. Locally it targets http://localhost:3000. The receiver is `lib/authoring/ropa-handoff.ts`
   in that repo; change both together. The JSON can also be downloaded.
+
+Sidebar (`shell/app-shell.*`, Figma "Left Nav" node 2241:5514): logo with Search (no action) and
+Collapse (to a 60px icon rail), New chat, Inbox and Projects (both placeholders, `shell/nav.ts`), a
+collapsible Chats list of every authoring session newest first (the open one has a filled dot),
+and the signed-in user. New chat and Chats talk to the AI page through `shell/chat-nav.ts`.
+Processing activities and Pending inventory aren't in the sidebar; reach them by URL or from links.
 
 Layout: `shell/` holds the app shell (top bar + side nav), `PageHeader`, and `TableFooter`
 (wraps `oc-pagination` with a row count and page-size picker). Mock data lives in `data/`.

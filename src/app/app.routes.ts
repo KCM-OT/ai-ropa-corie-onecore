@@ -1,6 +1,4 @@
-import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
-import { DEFAULT_HOME, DEMO_HOME, DemoMode } from './shell/demo-mode';
 import { AppShell } from './shell/app-shell';
 
 export const routes: Routes = [
@@ -8,8 +6,8 @@ export const routes: Routes = [
     path: '',
     component: AppShell,
     children: [
-      // The home URL opens the AI Assisted page in demo mode, Processing activities otherwise.
-      { path: '', pathMatch: 'full', redirectTo: () => (inject(DemoMode).on() ? DEMO_HOME : DEFAULT_HOME) },
+      // The sidebar is AI-first, so the home URL opens the AI Assisted page.
+      { path: '', pathMatch: 'full', redirectTo: 'ai-assisted-ropa' },
       {
         path: 'processing-activities',
         title: 'Processing activities | Data Mapping',
@@ -32,7 +30,7 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/pending-inventory/pending-inventory').then((m) => m.PendingInventory),
       },
-      // Every other nav item renders a "not built yet" placeholder.
+      // Inbox, Projects and any other URL render a "not built yet" placeholder.
       {
         path: '**',
         title: 'Data Mapping',

@@ -1,79 +1,88 @@
 <div class="shell" [class.collapsed]="collapsed()">
-  <aside class="sidebar" [attr.aria-label]="moduleName">
+  <aside class="sidebar" aria-label="Main navigation">
     <div class="sidebar-header">
       @if (collapsed()) {
         <button type="button" class="logo logo--symbol" aria-label="Expand navigation" (click)="collapsed.set(false)">
-          <img src="onetrust-symbol-white.svg" alt="" width="37" height="20" />
+          <img src="onetrust-symbol-white.svg" alt="" width="30" height="16" />
         </button>
       } @else {
         <a class="logo" routerLink="/" aria-label="OneTrust home">
-          <img src="onetrust-logo-white.svg" alt="" width="146" height="20" />
+          <img src="onetrust-logo-white.svg" alt="" width="117" height="16" />
         </a>
         <div class="header-actions">
           <button oc-icon-button variant="inverse" size="sm" label="Search">
-            <oc-icon name="magnifying-glass" />
+            <oc-icon name="magnifying-glass" variant="outline" />
           </button>
           <button oc-icon-button variant="inverse" size="sm" label="Collapse navigation" [tooltip]="false" (click)="collapsed.set(true)">
-            <oc-icon name="sidebar-left" />
+            <oc-icon name="sidebar-right" variant="outline" />
           </button>
         </div>
       }
     </div>
 
-    <p class="module-name" [title]="moduleName">{{ moduleName }}</p>
-
-    <nav class="nav" [attr.aria-label]="moduleName">
-      @for (item of nav(); track item.label) {
-        @if (isGroup(item)) {
-          <div class="group">
-            <button
-              type="button"
-              class="row"
-              [class.active]="groupActive(item) && !isOpen(item)"
-              [attr.aria-expanded]="isOpen(item)"
-              [attr.title]="collapsed() ? item.label : null"
-              (click)="onGroupClick(item)"
-            >
-              <oc-icon class="row-icon" variant="outline" [name]="item.icon" />
-              <span class="row-label">{{ item.label }}</span>
-              <oc-icon class="caret" name="chevron-down" size="sm" [class.closed]="!isOpen(item)" />
-            </button>
-            @if (isOpen(item)) {
-              <div class="group-items">
-                @for (link of item.children; track link.href) {
-                  <a class="row row--nested" [routerLink]="link.href" routerLinkActive="active" ariaCurrentWhenActive="page">
-                    <span class="row-label">{{ link.label }}</span>
-                  </a>
-                }
-              </div>
-            }
-          </div>
-        } @else {
-          <a
-            class="row"
-            [routerLink]="item.href"
-            routerLinkActive="active"
-            ariaCurrentWhenActive="page"
-            [attr.title]="collapsed() ? item.label : null"
-          >
-            @if (item.icon) {
-              <oc-icon class="row-icon" variant="outline" [name]="item.icon" />
-            }
-            <span class="row-label">{{ item.label }}</span>
-          </a>
-        }
+    <nav class="nav" aria-label="Main">
+      <button type="button" class="row" [attr.title]="collapsed() ? 'New chat' : null" (click)="newChat()">
+        <oc-icon class="row-icon" name="plus" variant="outline" />
+        <span class="row-label">New chat</span>
+      </button>
+      @for (item of nav; track item.href) {
+        <a
+          class="row"
+          [routerLink]="item.href"
+          routerLinkActive="active"
+          ariaCurrentWhenActive="page"
+          [attr.title]="collapsed() ? item.label : null"
+        >
+          <oc-icon class="row-icon" [name]="item.icon" variant="outline" />
+          <span class="row-label">{{ item.label }}</span>
+        </a>
       }
     </nav>
 
+    @if (!collapsed()) {
+      <section class="chats" aria-labelledby="chats-title">
+        <button
+          type="button"
+          class="chats-head"
+          [attr.aria-expanded]="chatsOpen()"
+          aria-controls="chat-list"
+          (click)="chatsOpen.set(!chatsOpen())"
+        >
+          <span id="chats-title">Chats</span>
+          <oc-icon class="caret" name="chevron-up" variant="outline" [class.closed]="!chatsOpen()" />
+        </button>
+        @if (chatsOpen()) {
+          <ul class="chat-list" id="chat-list">
+            @for (c of chats(); track c.id) {
+              <li>
+                <button
+                  type="button"
+                  class="chat"
+                  [class.active]="c.id === activeChat()"
+                  [attr.aria-current]="c.id === activeChat() ? 'page' : null"
+                  [title]="c.name"
+                  (click)="openChat(c)"
+                >
+                  <span class="dot" aria-hidden="true"></span>
+                  <span class="chat-name">{{ c.name }}</span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+
     <div class="sidebar-foot">
-      <button
-        oc-switch
-        id="demo-mode"
-        [(checked)]="demoMode"
-        aria-label="Demo mode"
-        [attr.title]="collapsed() ? 'Demo mode: ' + (demoMode() ? 'on' : 'off') : null"
-      ></button>
-      <label for="demo-mode" class="row-label">Demo mode</label>
+      <button type="button" class="user" [attr.aria-label]="'Account: ' + user + ', ' + userRole">
+        <oc-avatar class="user-avatar" [initials]="userInitials" [label]="user" [showTooltip]="false" />
+        <span class="user-text">
+          <span class="user-name">{{ user }}</span>
+          <span class="user-sub">{{ userRole }}</span>
+          <span class="user-sub">{{ userTenant }}</span>
+        </span>
+        <oc-icon class="user-caret" name="angles-up-down" variant="outline" />
+      </button>
     </div>
   </aside>
 

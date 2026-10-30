@@ -1,81 +1,51 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, inject, signal } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { OcAvatar } from '@onetrust/onecore/avatar';
-import { OcButton } from '@onetrust/onecore/button';
 import { OcIcon } from '@onetrust/onecore/icon';
 import { OcIconButton } from '@onetrust/onecore/icon-button';
-import { OcSwitch } from '@onetrust/onecore/switch';
-import { filter, map } from 'rxjs';
+import { AuthoringHistory, type AuthoringSession } from '../data/authoring-history';
 import { initials, SIGNED_IN_USER } from '../data/org';
-import { DemoMode } from './demo-mode';
-import { DEMO_NAV, isGroup, MODULE_NAME, NAV, type NavGroup } from './nav';
+import { ChatNav } from './chat-nav';
+import { NAV } from './nav';
 
-// Full-height dark sidebar (logo row, module name, nav) beside the global top
-// bar and the routed page. Styling follows the AI revamp concept
-// (mike-aigrevamp.vercel.app): near-black surface, an icon per top-level item,
-// a brand-green active marker, and a sidebar that narrows to an icon rail.
-// OneCore has no shell or side-nav component, so this is native HTML styled
-// with --oc-* tokens.
+/** The AI Assisted RoPA page, where New chat and the Chats list lead. */
+const CHAT_PAGE = '/ai-assisted-ropa';
+
+// The AI-first sidebar (Figma "Left Nav", node 2241:5514): logo with Search
+// and Collapse, New chat / Inbox / Projects, a collapsible list of recent
+// authoring chats, and the signed-in user at the foot. It narrows to an icon
+// rail. OneCore has no side-nav component, so this is native HTML styled with
+// --oc-* tokens.
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, OcAvatar, OcButton, OcIcon, OcIconButton, OcSwitch],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, OcAvatar, OcIcon, OcIconButton],
   templateUrl: './app-shell.html',
   styleUrl: './app-shell.scss',
 })
 export class AppShell {
   readonly #router = inject(Router);
+  readonly #chatNav = inject(ChatNav);
 
-  /** Demo mode hides every nav item except the ones marked `demo`. On by default. */
-  protected readonly demoMode = inject(DemoMode).on;
-  protected readonly nav = computed(() => (this.demoMode() ? DEMO_NAV : NAV));
-  protected readonly moduleName = MODULE_NAME;
-  protected readonly isGroup = isGroup;
+  protected readonly nav = NAV;
+  protected readonly chats = inject(AuthoringHistory).chats;
+  protected readonly activeChat = this.#chatNav.activeId;
   protected readonly user = SIGNED_IN_USER;
   protected readonly userInitials = initials(SIGNED_IN_USER);
+  // Prototype stand-ins for the signed-in user's role and tenant.
+  protected readonly userRole = 'AI Governance Admin';
+  protected readonly userTenant = 'Main Tenant 1234';
 
   protected readonly collapsed = signal(false);
-  // Every group starts closed, so the sidebar opens as a short list of
-  // sections. A closed group still shows as active when you're on one of its pages.
-  protected readonly closedGroups = signal<ReadonlySet<string>>(
-    new Set(NAV.filter(isGroup).map((g) => g.label)),
-  );
+  protected readonly chatsOpen = signal(true);
 
-  readonly #url = toSignal(
-    this.#router.events.pipe(
-      filter((e) => e instanceof NavigationEnd),
-      map(() => this.#router.url),
-    ),
-    { initialValue: this.#router.url },
-  );
-
-  /** A group reads as active when the current page is one of its links. */
-  protected groupActive(group: NavGroup): boolean {
-    const path = this.#url().split(/[?#]/)[0];
-    return group.children.some((c) => path === c.href || path.startsWith(`${c.href}/`));
+  /** Start a fresh conversation on the AI Assisted page. */
+  protected newChat(): void {
+    this.#chatNav.newChat();
+    void this.#router.navigateByUrl(CHAT_PAGE);
   }
 
-  protected isOpen(group: NavGroup): boolean {
-    return !this.collapsed() && !this.closedGroups().has(group.label);
-  }
-
-  protected onGroupClick(group: NavGroup): void {
-    // On the icon rail a group has nowhere to show its links, so open the
-    // sidebar with that group expanded.
-    if (this.collapsed()) {
-      this.collapsed.set(false);
-      this.closedGroups.update((s) => {
-        const next = new Set(s);
-        next.delete(group.label);
-        return next;
-      });
-      return;
-    }
-    this.closedGroups.update((s) => {
-      const next = new Set(s);
-      if (next.has(group.label)) next.delete(group.label);
-      else next.add(group.label);
-      return next;
-    });
+  protected openChat(session: AuthoringSession): void {
+    this.#chatNav.open(session);
+    void this.#router.navigateByUrl(CHAT_PAGE);
   }
 }

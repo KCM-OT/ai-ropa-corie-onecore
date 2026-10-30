@@ -93,6 +93,7 @@ import {
 } from '../../data/skill-questions';
 import { ROLE_HELP, ROLE_LABELS, type DraftField, type FieldMeta, type ProcessingRole, type Relationship } from '../../data/types';
 import { PageHeader } from '../../shell/page-header';
+import { ChatNav } from '../../shell/chat-nav';
 import { AiStart, type StartRequest } from './start/ai-start';
 
 // AI Assisted RoPA Creation: a conversation with the OneCore AI assistant,
@@ -524,6 +525,7 @@ export class AiAssisted {
   constructor() {
     this.#flashUpdatedBlocks();
     this.#keepHistory();
+    this.#followSidebar();
     this.#initial = this.#snapshot();
 
     // Started from an existing record (Processing activities → Create variation with AI).
@@ -543,6 +545,7 @@ export class AiAssisted {
   protected readonly view = signal<'start' | 'chat'>('start');
   protected readonly pendingSessions = inject(AuthoringHistory).pending;
   readonly #history = inject(AuthoringHistory);
+  readonly #chatNav = inject(ChatNav);
   /** The Pending entry this conversation updates. */
   #session: AuthoringSession | null = null;
 
@@ -561,6 +564,7 @@ export class AiAssisted {
       openQuestions: 0,
       dueAt: isoDaysFromToday(DUE_AFTER_DAYS),
     };
+    this.#chatNav.activeId.set(this.#session.id);
     const name = req.session?.name ?? req.name;
     if (name) this.name.set(name);
     this.onSend(req.text, req.files);
@@ -568,13 +572,35 @@ export class AiAssisted {
 
   /** Back to the start screen with an empty draft. */
   protected newSession(): void {
+    // The streaming turn is removed below, so its completion handler won't run: clear the reply here.
     this.#abort?.abort();
+    this.#abort = null;
+    this.#replyId = null;
+    this.busy.set(false);
+    this.creating.set(false);
     this.#restore(this.#initial);
     this.#fromRecord = null;
     this.#session = null;
     this.turns.set([]);
     this.sent.set(null);
     this.view.set('start');
+    this.#chatNav.activeId.set(null);
+  }
+
+  /** New chat and the Chats list in the sidebar (see shell/chat-nav.ts). */
+  #followSidebar(): void {
+    inject(DestroyRef).onDestroy(() => this.#chatNav.activeId.set(null));
+    effect(() => {
+      if (!this.#chatNav.request()) return;
+      untracked(() => {
+        const r = this.#chatNav.take();
+        if (r?.kind === 'new') this.newSession();
+        if (r?.kind === 'open' && r.session.id !== this.#session?.id) {
+          this.newSession();
+          this.begin({ text: r.session.text, files: [], session: r.session });
+        }
+      });
+    });
   }
 
   /** Keep this conversation's Pending entry current: name, summary, completeness, open questions, done. */
