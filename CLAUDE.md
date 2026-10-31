@@ -36,8 +36,9 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
 - `/ai-assisted-ropa`: AI Assisted RoPA Creation, the home page (`/` redirects here). Reached from
   the sidebar's New chat and Chats, and from the Add processing activity menu. It opens on a
   start screen (`pages/ai-assisted/start/`, Figma node 2241:5516) built from OneCore parts: an
-  `oc-assistant-composer` in a card (attach a .txt/.md/.csv, Enter or Send sends; the composer needs
-  some text), `oc-assistant-suggestion`
+  `oc-assistant-composer` in a card (Enter or Send sends; the composer needs some text, so attaching
+  a document to an empty composer fills in "Create a RoPA record from <file>.", which isn't read as
+  part of the description), `oc-assistant-suggestion`
   sample chips (they fill the composer with a random variant and never send), and Pending
   (`data/authoring-history.ts`: example sessions plus those started in this browser, in
   localStorage, soonest due first, each with open questions and a due date two weeks after it
@@ -52,6 +53,14 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
   partial reply to make the message editable.
   The draft panel shows an `oc-skeleton` of the whole record while the first reply builds it, then
   a skeleton on any block (name, entity, role, field) whose value changes, for `UPDATE_MS`.
+- **Attached documents** (`data/document-text.ts`): both composers accept .docx, .doc (Word 97–2003),
+  .pdf, .rtf and .txt (also .md/.csv), up to 10 MB, read in the browser. .docx is unzipped with
+  `fflate` (a two-column table row reads "Label: value"), .doc through its piece table with `cfb`,
+  .rtf with a small parser, .pdf with `pdfjs-dist` (worker copied to `/pdfjs/` by `angular.json`;
+  wrapped lines are put back into paragraphs and aligned table columns read "Label: value"). The PDF
+  and .doc readers load on first use. The text goes through the same extractor as a typed
+  description; the reply says what was read ("1 page, 78 words") or why a file couldn't be
+  (scanned PDF, password, damaged). No OCR.
 - **Duplicate check** (`data/duplicates.ts`): after the description, an attached document, or a record
   picked from Processing activities (row menu → Create variation with AI, `?from=<id>`), the draft is
   compared with the records the user can view (`canView`: every group entity except APAC in this

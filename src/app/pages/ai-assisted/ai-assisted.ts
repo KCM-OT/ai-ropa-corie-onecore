@@ -55,6 +55,7 @@ import { OcStatus } from '@onetrust/onecore/status';
 import { OcTag } from '@onetrust/onecore/tag';
 import { OcTextarea } from '@onetrust/onecore/textarea';
 import { DraftsStore } from '../../data/drafts.store';
+import { DOCUMENT_ACCEPT, DOCUMENT_MAX_SIZE, isAttachPrompt, readDocument, type DocumentText } from '../../data/document-text';
 import { buildHandoff, handoffFileName, handoffUrl } from '../../data/handoff';
 import { initials, SIGNED_IN_USER, SUBSIDIARIES, subsidiaryName } from '../../data/org';
 import { PROCESSING_ACTIVITIES } from '../../data/processing-activities';
@@ -100,7 +101,7 @@ import { AiStart, type StartRequest } from './start/ai-start';
 // with a live draft beside it, that follows the ropa-authoring skill's
 // workflow (.claude/skills/ropa-authoring/SKILL.md):
 //
-//   1. Gather the description   → phase 'describe' (text or an attached .txt / .md)
+//   1. Gather the description   → phase 'describe' (text or an attached document, data/document-text.ts)
 //   2. Role and owning entity    → phase 'details': an oc-assistant-steps chain for the
 //                                  name, the owning entity and the role, pre-selecting
 //                                  the role the description's cues point to
@@ -311,6 +312,8 @@ export class AiAssisted {
   protected readonly streamStates = signal<Record<number, ChoreoState>>({});
   protected readonly busy = signal(false);
   protected readonly files = signal<File[]>([]);
+  protected readonly documentAccept = DOCUMENT_ACCEPT;
+  protected readonly documentMaxSize = DOCUMENT_MAX_SIZE;
   protected readonly chainOpen = signal(false);
   protected readonly chainStep = signal(0);
   #nextId = 1;
@@ -759,13 +762,15 @@ export class AiAssisted {
     await pause(THINKING_MS, signal);
     if (signal.aborted) return;
 
-    const docs: { name: string; text: string }[] = [];
-    for (const file of files) {
-      if (/\.(txt|md|csv)$/i.test(file.name) || file.type.startsWith('text/')) {
-        docs.push({ name: file.name, text: await file.text() });
-      }
+    const docs: DocumentText[] = [];
+    const unreadable: string[] = [];
+    for (const result of await Promise.all(files.map(readDocument))) {
+      if (result.ok) docs.push(result.doc);
+      else unreadable.push(`I couldn't read ${result.name}: ${result.reason}.`);
     }
-    const unreadable = files.filter((f) => !docs.some((d) => d.name === f.name)).map((f) => f.name);
+    if (signal.aborted) return;
+    // The start screen's "Create a RoPA record from …" prompt isn't part of the description.
+    if (isAttachPrompt(prompt, files.map((f) => f.name))) prompt = docs.length ? '' : prompt;
 
     const reply = this.#respond(prompt, docs, unreadable);
     if (reply.after) this.#after.set(turnId, reply.after);
@@ -777,9 +782,10 @@ export class AiAssisted {
     }
   }
 
-  #respond(prompt: string, docs: { name: string; text: string }[], unreadable: string[]): Reply {
-    const unreadableNote = unreadable.length
-      ? `I can't read ${unreadable.join(', ')} in this prototype. It reads plain-text files (.txt, .md).\n\n`
+  #respond(prompt: string, docs: DocumentText[], unreadable: string[]): Reply {
+    const unreadableNote = unreadable.length ? unreadable.join(' ') + '\n\n' : '';
+    const readNote = docs.length
+      ? `I read ${docs.map((d) => `${d.name} (${d.summary})`).join(' and ')}. `
       : '';
 
     switch (this.phase()) {
@@ -791,6 +797,7 @@ export class AiAssisted {
           return {
             text:
               unreadableNote +
+              readNote +
               'I need a bit more to go on. Tell me who the data is about, what you collect and why, which tools ' +
               "or vendors are involved, how long you keep it, and where it's stored.",
           };
@@ -811,6 +818,7 @@ export class AiAssisted {
             : 'your description';
         const extracted =
           unreadableNote +
+          readNote +
           (found
             ? `I've extracted ${plural(found, 'value')} from ${from}`
             : `I couldn't find any Article 30 values in ${from}, so I'll ask about each one`) +

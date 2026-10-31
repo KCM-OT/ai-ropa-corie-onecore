@@ -230,7 +230,7 @@
           label="Message the RoPA assistant"
           [(files)]="files"
           [maxFiles]="1"
-          [maxSize]="1000000"
+          [maxSize]="documentMaxSize"
           (send)="onSend($event)"
         >
           <div oc-assistant-attachment-tray></div>
@@ -249,7 +249,7 @@
               variant="tertiary"
               size="sm"
               label="Attach a document"
-              accept=".txt,.md,.csv,text/plain"
+              [accept]="documentAccept"
               [multiple]="false"
             >
               <oc-icon name="paperclip" />

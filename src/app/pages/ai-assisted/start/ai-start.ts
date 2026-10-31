@@ -17,6 +17,12 @@ import { OcIconButton } from '@onetrust/onecore/icon-button';
 import { OcTextarea } from '@onetrust/onecore/textarea';
 import { daysUntil, type AuthoringSession } from '../../../data/authoring-history';
 import { pickVariant, SCENARIOS } from '../../../data/demo-samples';
+import {
+  attachPrompt,
+  DOCUMENT_ACCEPT,
+  DOCUMENT_MAX_SIZE,
+  isAttachPrompt,
+} from '../../../data/document-text';
 
 /** What the start screen hands to the conversation. */
 export interface StartRequest {
@@ -71,6 +77,8 @@ export class AiStart {
 
   protected readonly samples = SCENARIOS.map((s) => s.chip);
   protected readonly files = signal<File[]>([]);
+  protected readonly documentAccept = DOCUMENT_ACCEPT;
+  protected readonly documentMaxSize = DOCUMENT_MAX_SIZE;
   /** The record name of the sample in the composer, if the text came from one. */
   readonly #sampleName = signal<string | undefined>(undefined);
 
@@ -82,6 +90,30 @@ export class AiStart {
   /** The composer's send: Enter or the Send button, with any attached file. */
   protected send(text: string): void {
     this.begin.emit({ text, files: this.files(), name: this.#sampleName() });
+  }
+
+  /**
+   * Attaching a document to an empty composer fills in a prompt for it, so
+   * Send is ready (the composer only sends with some text). Removing the
+   * document takes that prompt away again; anything the user typed stays.
+   */
+  protected onFiles(files: File[]): void {
+    const before = this.files();
+    this.files.set(files);
+    const el = this.textarea().nativeElement;
+    const current = el.value.trim();
+    let next: string | undefined;
+    if (files.length && (!current || isAttachPrompt(current, before.map((f) => f.name)))) {
+      next = attachPrompt(files[0].name);
+    } else if (!files.length && isAttachPrompt(current, before.map((f) => f.name))) {
+      next = '';
+    }
+    if (next === undefined) return;
+    el.value = next;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    this.#sampleName.set(undefined);
+    el.focus();
+    el.setSelectionRange(next.length, next.length);
   }
 
   protected onInput(): void {
