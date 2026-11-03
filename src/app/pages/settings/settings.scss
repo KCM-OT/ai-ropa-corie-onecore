@@ -1,0 +1,71 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.description {
+  margin: 0;
+}
+
+.content {
+  position: relative;
+  flex: 1;
+  overflow: auto;
+  padding: var(--oc-spacing-8) var(--oc-spacing-5);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--oc-spacing-5);
+  max-width: 42rem;
+}
+
+h2 {
+  margin: 0;
+  font-size: var(--oc-font-size-md);
+  font-weight: 400;
+  color: var(--oc-foreground);
+}
+
+// One bordered card; rows are divided by a hairline (Figma "row-language").
+.rows {
+  border: var(--oc-container-border-width) solid var(--oc-border);
+  border-radius: var(--oc-containers-radius-level-2);
+  background: var(--oc-card);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--oc-spacing-7);
+  padding: var(--oc-spacing-4) var(--oc-spacing-5);
+
+  & + & {
+    border-top: var(--oc-container-border-width) solid var(--oc-border);
+  }
+}
+
+.row-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 16rem;
+  font-size: var(--oc-font-size-md);
+  line-height: var(--oc-line-height-relaxed);
+}
+
+.row-title {
+  color: var(--oc-foreground);
+}
+
+.row-sub {
+  color: var(--oc-muted-foreground);
+}
+
+.row-control {
+  width: 18rem;
+  max-width: 100%;
+}

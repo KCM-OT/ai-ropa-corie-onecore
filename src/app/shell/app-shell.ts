@@ -6,6 +6,7 @@ import { OcIcon } from '@onetrust/onecore/icon';
 import { OcIconButton } from '@onetrust/onecore/icon-button';
 import { OcMenu, OcMenuItem, OcMenuSeparator, OcMenuTrigger } from '@onetrust/onecore/menu';
 import { AuthoringHistory, type AuthoringSession } from '../data/authoring-history';
+import { Preferences } from '../data/preferences';
 import { initials, SIGNED_IN_EMAIL, SIGNED_IN_USER } from '../data/org';
 import { ChatNav } from './chat-nav';
 import { NAV } from './nav';
@@ -39,6 +40,8 @@ const CHAT_PAGE = '/ai-assisted-ropa';
 export class AppShell {
   readonly #router = inject(Router);
   readonly #chatNav = inject(ChatNav);
+  // Created here so a saved theme applies on every page, not only after Settings opens.
+  readonly #prefs = inject(Preferences);
 
   protected readonly nav = NAV;
   protected readonly chats = inject(AuthoringHistory).chats;
@@ -59,6 +62,10 @@ export class AppShell {
   protected newChat(): void {
     this.#chatNav.newChat();
     void this.#router.navigateByUrl(CHAT_PAGE);
+  }
+
+  protected openSettings(): void {
+    void this.#router.navigateByUrl('/settings');
   }
 
   protected openChat(session: AuthoringSession): void {

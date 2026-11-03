@@ -1,0 +1,43 @@
+<app-page-header title="Settings">
+  <p class="description">Workspace, members, and platform configuration</p>
+</app-page-header>
+
+<div class="content">
+  <section class="group" aria-labelledby="common-settings">
+    <h2 id="common-settings">Common settings</h2>
+    <div class="rows">
+      <div class="row">
+        <div class="row-text">
+          <span class="row-title">Language</span>
+          <span class="row-sub">The primary language displayed in the interface.</span>
+        </div>
+        <oc-select
+          class="row-control"
+          aria-label="Language"
+          [value]="language()"
+          [displayWith]="languageLabel"
+          (valueChange)="setLanguage($event)"
+        >
+          @for (l of languages; track l.value) {
+            <oc-select-option [value]="l.value">{{ l.label }}</oc-select-option>
+          }
+        </oc-select>
+      </div>
+      <div class="row">
+        <div class="row-text">
+          <span class="row-title" id="theme-label">Theme</span>
+          <span class="row-sub">Choose from light, dark, and system</span>
+        </div>
+        <oc-toggle-button-group
+          aria-labelledby="theme-label"
+          [value]="[theme()]"
+          (valueChange)="setTheme($event)"
+        >
+          <button oc-toggle-button-group-item value="light">Light</button>
+          <button oc-toggle-button-group-item value="dark">Dark</button>
+          <button oc-toggle-button-group-item value="system">System</button>
+        </oc-toggle-button-group>
+      </div>
+    </div>
+  </section>
+</div>

@@ -32,6 +32,7 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
 - `/processing-activities`: the RoPA list (saved views, search, sort, selection, row menus, pagination).
 - `/processing-activities/new`: Author with AI. Describe → rule-based draft (`data/extract.ts`) →
   review suggested values, follow-up questions and linked inventory → send to Pending inventory.
+- `/settings`: Language and Theme (see Sidebar below).
 - `/pending-inventory`: pending records plus AI drafts (from `DraftsStore`, kept in localStorage).
 - `/ai-assisted-ropa`: AI Assisted RoPA Creation, the home page (`/` redirects here). Reached from
   the sidebar's New chat and Chats, and from the Add processing activity menu. It opens on a
@@ -85,8 +86,11 @@ Sidebar (`shell/app-shell.*`, Figma "Left Nav" node 2241:5514): logo with Search
 Collapse (to a 60px icon rail), New chat, Inbox and Projects (both placeholders, `shell/nav.ts`), a
 collapsible Chats list of every authoring session newest first (the open one has a filled dot),
 and the signed-in user, whose button opens the User Menu (Figma 2260:769, an `oc-menu` opening upward
-from the button's top edge: profile, organisation, Customize view, Settings, Sign out; the items
-have no destination yet). New chat and Chats talk to the AI page through `shell/chat-nav.ts`.
+from the button's top edge: profile, organisation, Customize view, Settings, Sign out; only Settings
+has a destination). `/settings` (Figma 2260:1275) has Language (`oc-select`; remembered only, the
+prototype has no translations) and Theme (`oc-toggle-button-group`: Light, Dark, System). Both live in
+`data/preferences.ts` (localStorage); the theme sets OneCore's `data-mode="dark"` on `<html>`, and
+System follows the OS. The sidebar is dark in both modes, so it pins `--oc-foreground-on-dark`. New chat and Chats talk to the AI page through `shell/chat-nav.ts`.
 Processing activities and Pending inventory aren't in the sidebar; reach them by URL or from links.
 
 Layout: `shell/` holds the app shell (side nav only; there is no global top bar), `PageHeader`, and `TableFooter`

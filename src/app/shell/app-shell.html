@@ -112,12 +112,12 @@
             <oc-badge>{{ entity.plan }}</oc-badge>
           </div>
           <oc-menu-separator />
-          <!-- Customize view, Settings and Sign out have no destination in this prototype. -->
+          <!-- Customize view and Sign out have no destination in this prototype. -->
           <button oc-menu-item>
             <span class="menu-label">Customize view...</span>
             <kbd class="menu-shortcut" aria-label="Command period">&#8984;.</kbd>
           </button>
-          <button oc-menu-item>Settings</button>
+          <button oc-menu-item (click)="openSettings()">Settings</button>
           <oc-menu-separator />
           <button oc-menu-item variant="destructive">Sign out</button>
         </oc-menu>

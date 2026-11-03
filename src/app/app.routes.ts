@@ -30,6 +30,11 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/pending-inventory/pending-inventory').then((m) => m.PendingInventory),
       },
+      {
+        path: 'settings',
+        title: 'Settings | Data Mapping',
+        loadComponent: () => import('./pages/settings/settings').then((m) => m.Settings),
+      },
       // Inbox, Projects and any other URL render a "not built yet" placeholder.
       {
         path: '**',

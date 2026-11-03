@@ -37,6 +37,12 @@ $rail-width: $row-inset * 2 + $icon-size;
   .collapsed & {
     width: $rail-width;
   }
+
+  // The sidebar stays dark in both modes, but dark mode flips
+  // foreground-on-dark to a dark ink, so keep it light here.
+  :host-context([data-mode='dark']) & {
+    --oc-foreground-on-dark: var(--oc-foreground);
+  }
 }
 
 .sidebar-header {
