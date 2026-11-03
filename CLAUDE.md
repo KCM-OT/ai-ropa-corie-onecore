@@ -84,10 +84,12 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
 Sidebar (`shell/app-shell.*`, Figma "Left Nav" node 2241:5514): logo with Search (no action) and
 Collapse (to a 60px icon rail), New chat, Inbox and Projects (both placeholders, `shell/nav.ts`), a
 collapsible Chats list of every authoring session newest first (the open one has a filled dot),
-and the signed-in user. New chat and Chats talk to the AI page through `shell/chat-nav.ts`.
+and the signed-in user, whose button opens the User Menu (Figma 2260:769, an `oc-menu` opening upward
+from the button's top edge: profile, organisation, Customize view, Settings, Sign out; the items
+have no destination yet). New chat and Chats talk to the AI page through `shell/chat-nav.ts`.
 Processing activities and Pending inventory aren't in the sidebar; reach them by URL or from links.
 
-Layout: `shell/` holds the app shell (top bar + side nav), `PageHeader`, and `TableFooter`
+Layout: `shell/` holds the app shell (side nav only; there is no global top bar), `PageHeader`, and `TableFooter`
 (wraps `oc-pagination` with a row count and page-size picker). Mock data lives in `data/`.
 Shared table styles (`.data-table`) are in `src/styles.scss`. Scroll containers are
 `position: relative` so OneCore's visually-hidden absolute text can't overflow the page.

@@ -74,7 +74,14 @@
     }
 
     <div class="sidebar-foot">
-      <button type="button" class="user" [attr.aria-label]="'Account: ' + user + ', ' + userRole">
+      <button
+        type="button"
+        class="user"
+        [attr.aria-label]="'Account: ' + user + ', ' + userRole"
+        [ocMenuTrigger]="userMenu"
+        placement="top-start"
+        [offset]="4"
+      >
         <oc-avatar class="user-avatar" [initials]="userInitials" [label]="user" [showTooltip]="false" />
         <span class="user-text">
           <span class="user-name">{{ user }}</span>
@@ -83,22 +90,42 @@
         </span>
         <oc-icon class="user-caret" name="angles-up-down" variant="outline" />
       </button>
+
+      <!-- User Menu (Figma node 2260:769): opens upward from the top edge of the account button. -->
+      <ng-template #userMenu>
+        <oc-menu class="user-menu" [attr.aria-label]="'Account menu for ' + user">
+          <div class="menu-profile">
+            <oc-avatar class="user-avatar" [initials]="userInitials" [label]="user" [showTooltip]="false" />
+            <span class="menu-text">
+              <span class="menu-title">{{ user }}</span>
+              <span class="menu-sub">{{ userRole }}</span>
+              <span class="menu-sub">{{ userEmail }}</span>
+            </span>
+          </div>
+          <oc-menu-separator />
+          <div class="menu-entity">
+            <span class="entity-mark" aria-hidden="true">{{ entity.name[0] }}</span>
+            <span class="menu-text">
+              <span class="menu-title">{{ entity.name }}</span>
+              <span class="menu-sub">{{ entity.detail }}</span>
+            </span>
+            <oc-badge>{{ entity.plan }}</oc-badge>
+          </div>
+          <oc-menu-separator />
+          <!-- Customize view, Settings and Sign out have no destination in this prototype. -->
+          <button oc-menu-item>
+            <span class="menu-label">Customize view...</span>
+            <kbd class="menu-shortcut" aria-label="Command period">&#8984;.</kbd>
+          </button>
+          <button oc-menu-item>Settings</button>
+          <oc-menu-separator />
+          <button oc-menu-item variant="destructive">Sign out</button>
+        </oc-menu>
+      </ng-template>
     </div>
   </aside>
 
   <div class="workspace">
-    <header class="top-bar">
-      <p class="tenant">Trust Intelligence Platform - SK</p>
-      <!-- Ask Copilot, notifications and the org switcher are hidden in this prototype. -->
-      <button oc-icon-button variant="tertiary" label="Settings">
-        <oc-icon name="gear" />
-      </button>
-      <oc-avatar size="sm" [initials]="userInitials" [label]="'Account: ' + user" />
-      <button oc-icon-button variant="tertiary" label="Help">
-        <oc-icon name="question-circle" />
-      </button>
-    </header>
-
     <main class="main">
       <router-outlet />
     </main>

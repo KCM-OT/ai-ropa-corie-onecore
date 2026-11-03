@@ -338,34 +338,79 @@ $rail-width: $row-inset * 2 + $icon-size;
   opacity: 0.8;
 }
 
-// Global top bar and page
+// User menu (Figma node 2260:769). The menu portals to <body>, but these rules
+// still apply: Angular scopes them by the template they're written in.
+
+oc-menu.user-menu {
+  width: 300px;
+  max-width: 300px;
+}
+
+.menu-profile,
+.menu-entity {
+  display: flex;
+  align-items: center;
+  gap: var(--oc-spacing-2);
+  padding: var(--oc-spacing-2) var(--oc-spacing-1);
+}
+
+.menu-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  color: var(--oc-muted-foreground);
+}
+
+.menu-title {
+  font-size: var(--oc-font-size-xs);
+  font-weight: var(--oc-font-weight-emphasis);
+  line-height: 16px;
+}
+
+.menu-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 13.75px;
+  opacity: 0.6;
+}
+
+.entity-mark {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--oc-control-radius-sm);
+  background: var(--oc-secondary);
+  color: var(--oc-foreground);
+  font-size: var(--oc-font-size-sm);
+  font-weight: var(--oc-font-weight-emphasis);
+}
+
+.menu-label {
+  flex: 1;
+}
+
+.menu-shortcut {
+  padding: 0 var(--oc-spacing-1);
+  border-radius: var(--oc-control-radius-sm);
+  background: var(--oc-secondary);
+  color: var(--oc-muted-foreground);
+  font-family: inherit;
+  font-size: var(--oc-font-size-xs);
+}
+
+// Page area (the prototype has no global top bar)
 
 .workspace {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-width: 0;
-}
-
-.top-bar {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: var(--oc-spacing-2);
-  height: 48px;
-  box-sizing: border-box;
-  padding: 0 var(--oc-spacing-3) 0 var(--oc-spacing-5);
-  border-bottom: var(--oc-container-border-width) solid var(--oc-border);
-}
-
-.tenant {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: var(--oc-font-size-md);
 }
 
 .main {

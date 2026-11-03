@@ -25,6 +25,7 @@ export function subsidiaryName(id: string): string {
 export const PROTOTYPE_TODAY = '2026-10-14';
 
 export const SIGNED_IN_USER = 'Kevin Marshall';
+export const SIGNED_IN_EMAIL = 'kevin.marshall@solera.example';
 
 export function initials(name: string): string {
   const parts = name.trim().split(/\s+/);

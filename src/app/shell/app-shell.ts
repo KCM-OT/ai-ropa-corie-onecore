@@ -1,10 +1,12 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { OcAvatar } from '@onetrust/onecore/avatar';
+import { OcBadge } from '@onetrust/onecore/badge';
 import { OcIcon } from '@onetrust/onecore/icon';
 import { OcIconButton } from '@onetrust/onecore/icon-button';
+import { OcMenu, OcMenuItem, OcMenuSeparator, OcMenuTrigger } from '@onetrust/onecore/menu';
 import { AuthoringHistory, type AuthoringSession } from '../data/authoring-history';
-import { initials, SIGNED_IN_USER } from '../data/org';
+import { initials, SIGNED_IN_EMAIL, SIGNED_IN_USER } from '../data/org';
 import { ChatNav } from './chat-nav';
 import { NAV } from './nav';
 
@@ -18,7 +20,19 @@ const CHAT_PAGE = '/ai-assisted-ropa';
 // --oc-* tokens.
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, OcAvatar, OcIcon, OcIconButton],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    OcAvatar,
+    OcBadge,
+    OcIcon,
+    OcIconButton,
+    OcMenu,
+    OcMenuItem,
+    OcMenuSeparator,
+    OcMenuTrigger,
+  ],
   templateUrl: './app-shell.html',
   styleUrl: './app-shell.scss',
 })
@@ -34,6 +48,9 @@ export class AppShell {
   // Prototype stand-ins for the signed-in user's role and tenant.
   protected readonly userRole = 'AI Governance Admin';
   protected readonly userTenant = 'Main Tenant 1234';
+  protected readonly userEmail = SIGNED_IN_EMAIL;
+  // The organisation shown in the user menu (Figma node 2260:769).
+  protected readonly entity = { name: 'Solera Global', detail: 'Enterprise • Production', plan: 'Enterprise' };
 
   protected readonly collapsed = signal(false);
   protected readonly chatsOpen = signal(true);
