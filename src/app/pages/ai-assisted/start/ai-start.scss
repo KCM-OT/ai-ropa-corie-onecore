@@ -49,20 +49,9 @@ h1 {
   background: transparent;
 }
 
+// The composer draws its own frame (border, radius, card fill) since OneCore 0.12.
 .prompt-card {
   width: 100%;
-  overflow: hidden;
-  border: 1px solid var(--oc-border);
-  border-radius: 10px;
-  background: var(--oc-background);
-
-  oc-assistant-composer {
-    display: flex;
-    flex-direction: column;
-    gap: var(--oc-spacing-2);
-    padding: var(--oc-spacing-3);
-    background: var(--oc-card);
-  }
 
   textarea {
     min-height: 64px;

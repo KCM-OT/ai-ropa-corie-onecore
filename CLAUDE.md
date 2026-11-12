@@ -1,7 +1,10 @@
 # RoPA prototype on OneCore
 
 Angular 21 prototype of OneTrust Privacy Management → Data Mapping (RoPA records), built on
-the OneCore design system (`@onetrust/onecore`, pinned to 0.7.0).
+the OneCore design system (`@onetrust/onecore`, pinned to 1.0.0).
+Upgrade on purpose: install the exact version with npm 11, then run
+`npx ng update @onetrust/onecore --migrate-only --from=<old> --to=<new>` for the migration report
+(`onecore-upgrade-report.md`; don't commit it) and read the Release Notes.
 
 ## Run
 
@@ -10,7 +13,9 @@ the OneCore design system (`@onetrust/onecore`, pinned to 0.7.0).
 - Install with npm 11 (`npx npm@11 install`). npm 10.8 crashes with
   `Cannot read properties of null (reading 'edgesOut')` on this dependency tree.
 - `@onetrust/onecore` comes from OneTrust Nexus (configured in `~/.npmrc`). It is not on public npm,
-  so hosts without Nexus access (for example Vercel) cannot install it.
+  so hosts without Nexus access (for example Vercel) cannot install it. If install returns 401, check
+  `npm whoami --registry=https://nexus.onetrust.dev/nexus/repository/npm-group/` prints
+  `npm-developer`; if not, re-run `npx odk-register --verbose --force` (Devkit).
 
 ## Deploy
 
@@ -37,7 +42,7 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
 - `/ai-assisted-ropa`: AI Assisted RoPA Creation, the home page (`/` redirects here). Reached from
   the sidebar's New chat and Chats, and from the Add processing activity menu. It opens on a
   start screen (`pages/ai-assisted/start/`, Figma node 2241:5516) built from OneCore parts: an
-  `oc-assistant-composer` in a card (Enter or Send sends; the composer needs some text, so attaching
+  `oc-assistant-composer`, which draws its own frame (Enter or Send sends; the composer needs some text, so attaching
   a document to an empty composer fills in "Create a RoPA record from <file>.", which isn't read as
   part of the description), `oc-assistant-suggestion`
   sample chips (they fill the composer with a random variant and never send), and Pending
@@ -110,13 +115,17 @@ Shared table styles (`.data-table`) are in `src/styles.scss`. Scroll containers 
 - Style with `--oc-*` tokens only. No raw hex, rgb or px colour values.
 - Foundation styles (tokens, Antique Legacy fonts, base) load once in `src/styles.scss`
   via `@use 'foundation/styles'`, resolved through `stylePreprocessorOptions.includePaths`.
-- OneCore has no table, side nav or page header component. Build those from native HTML
-  styled with tokens, as `shell/` and the `.data-table` styles do.
+- OneCore has no side nav or page header component. Build those from native HTML styled with
+  tokens, as `shell/` does. OneCore 0.10 added `oc-data-grid` (`@onetrust/onecore/data-grid`,
+  TanStack); the list pages still use the native `.data-table` and haven't been moved to it.
 - Known upstream noise: OneCore's tooltip (used by every `oc-icon-button`) logs ng-primitives
   "Use setTooltip()/setDisabled()/setContext() instead of setting the value directly" warnings in
   dev mode. They come from the library, not this app.
-- Hosted docs (Storybook, needs GitLab sign-in):
-  https://onecore-5e147a.gitlab.io/release-alpha/?path=/docs/guides-developer-overview--docs
+- Hosted docs (Storybook, no sign-in, always the latest release, not necessarily the installed one):
+  https://onecore.1trust.app (Angular setup: `?path=/docs/guides-engineers-angular-setup--docs`,
+  Release Notes: `?path=/docs/release-notes--docs`). The same host serves a hosted MCP at
+  https://onecore.1trust.app/mcp; this repo uses the local `npx onecore mcp` instead because it
+  matches the installed version.
 
 ## RoPA content: the ropa-authoring skill
 
