@@ -142,7 +142,7 @@
             </button>
             <ng-template #rowMenu>
               <oc-menu>
-                <button oc-menu-item>Start re-certification</button>
+                <button oc-menu-item (click)="router.navigate(['/recertification', r.id])">Start re-certification</button>
                 <button oc-menu-item (click)="router.navigate(['/ai-assisted-ropa'], { queryParams: { from: r.id } })">
                   Create variation with AI
                 </button>

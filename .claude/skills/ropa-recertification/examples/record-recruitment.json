@@ -1,0 +1,31 @@
+{
+  "id": "pa-recruitment",
+  "name": "AI-Assisted Candidate Screening & Recruitment",
+  "description": "Candidate CVs are screened and scored by an AI tool before recruiters shortlist and interview applicants.",
+  "status": "active",
+  "purpose": "Shortlist and hire job applicants",
+  "legalBasis": "Legitimate interests",
+  "managingOrganization": "Solera Group",
+  "businessProcessOwner": "Global Talent Acquisition",
+  "subsidiaryId": "sub-group",
+  "role": "controller",
+  "dataSubjectCategories": ["Job applicants"],
+  "retentionPeriod": "12 months after requisition closure; retain hired-candidate records in HRIS",
+  "recipients": "Recruiters, hiring managers, HR",
+  "internationalTransfers": "None",
+  "securityMeasures": "Encryption at rest and in transit, SSO, role-based access",
+  "jurisdiction": "EU, UK",
+  "fieldMeta": {},
+  "relationships": [
+    { "id": "rel-1", "type": "vendor", "name": "Zoom", "inventoryId": "ven-zoom", "provenance": "manual", "status": "accepted" },
+    { "id": "rel-2", "type": "vendor", "name": "TalentSprint AI", "inventoryId": null, "provenance": "manual", "status": "accepted" },
+    { "id": "rel-3", "type": "asset", "name": "Recruiting Portal", "inventoryId": null, "provenance": "manual", "status": "accepted" },
+    { "id": "rel-4", "type": "personalData", "name": "Government ID number", "inventoryId": "pdc-govid", "provenance": "manual", "status": "accepted" },
+    { "id": "rel-5", "type": "personalData", "name": "Employment history", "inventoryId": null, "provenance": "manual", "status": "accepted" }
+  ],
+  "reviewCadenceDays": 180,
+  "lastReviewedAt": "2026-05-10T00:00:00.000Z",
+  "nextReviewAt": "2026-11-06T00:00:00.000Z",
+  "createdAt": "2025-03-01T00:00:00.000Z",
+  "updatedAt": "2026-05-10T00:00:00.000Z"
+}

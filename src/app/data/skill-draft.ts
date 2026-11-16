@@ -91,7 +91,7 @@ export function splitList(text: string): string[] {
 
 // ---- cue tables (extraction-rules.md, processor-mode.md) ----
 
-const PERSONAL_DATA_CUES: { name: string; special?: boolean; re: RegExp }[] = [
+export const PERSONAL_DATA_CUES: { name: string; special?: boolean; re: RegExp }[] = [
   { name: 'Name', re: /full name|employee name|customer'?s name|\bnames?\b/i },
   { name: 'Email address', re: /e-?mail address|work email|\bemails?\b/i },
   { name: 'Phone number', re: /phone number/i },

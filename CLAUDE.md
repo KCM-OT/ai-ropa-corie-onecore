@@ -24,7 +24,7 @@ Nexus is reachable, then upload with `vercel deploy --prebuilt`. Vercel project:
 onetrustpmux-v0/ai-ropa-corie-onecore. Pushing to GitHub does not deploy. `vercel.json` rewrites
 every path to `index.html` so deep links work.
 
-Both deploy scripts first run `npm run skill:upstream`, which compares the vendored skill with the
+Both deploy scripts first run `npm run skill:upstream`, which compares each vendored skill with the
 upstream repo's main branch (read from its `UPSTREAM.md`, fetched with your git credentials) and
 stops the deploy if the copy is behind, listing the changed files and upstream commits.
 `SKILL_UPSTREAM_CHECK=warn npm run deploy` deploys anyway with a warning; if upstream can't be
@@ -38,6 +38,21 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
 - `/processing-activities/new`: Author with AI. Describe → rule-based draft (`data/extract.ts`) →
   review suggested values, follow-up questions and linked inventory → send to Pending inventory.
 - `/settings`: Language and Theme (see Sidebar below).
+- `/recertification`: Recertification, in the sidebar. Active records by review state
+  (overdue, due soon, on track: the ropa-recertification skill's SKILL.md step 2, 30-day window,
+  `PROTOTYPE_TODAY`), with each record's check-in status (with the analyst, paused) and Recertify.
+- `/recertification/:id`: the owner check-in, also opened from a Processing activities row menu
+  (Start re-certification). It follows the ropa-recertification skill's owner side (SKILL.md steps
+  3–7, `references/owner-chat-agent.md`): an `oc-assistant-thread` beside the record under review
+  (topic progress, fields and links, with applied and proposed changes marked). Seven topics in
+  fixed order, one yes/no question each; a "No" gets exactly "Please tell us what has changed";
+  changes become before/after cards (Yes, apply / Edit for field changes / No, skip); a named new
+  owner gets the pause question; then the recap (`templates/recertification-submission.md`), an
+  optional note, and Send to privacy analyst. It stays separate from the AI Assisted page and its
+  composer. Answers are read with rules in `data/recertification.ts` (no model); quick-reply chips
+  include a realistic example change for each topic. Submissions (`pending_review`) and pauses live
+  in `data/recert.store.ts` (localStorage); nothing changes the record because the analyst side
+  (review, follow-ups, commit) isn't built yet.
 - `/pending-inventory`: pending records plus AI drafts (from `DraftsStore`, kept in localStorage).
 - `/ai-assisted-ropa`: AI Assisted RoPA Creation, the home page (`/` redirects here). Reached from
   the sidebar's New chat and Chats, and from the Add processing activity menu. It opens on a
@@ -88,7 +103,7 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
   in that repo; change both together. The JSON can also be downloaded.
 
 Sidebar (`shell/app-shell.*`, Figma "Left Nav" node 2241:5514): logo with Search (no action) and
-Collapse (to a 60px icon rail), New chat, Inbox and Projects (both placeholders, `shell/nav.ts`), a
+Collapse (to a 60px icon rail), New chat, Inbox and Projects (both placeholders) and Recertification (`shell/nav.ts`), a
 collapsible Chats list of every authoring session newest first (the open one has a filled dot),
 and the signed-in user, whose button opens the User Menu (Figma 2260:769, an `oc-menu` opening upward
 from the button's top edge: profile, organisation, Customize view, Settings, Sign out; only Settings
@@ -144,3 +159,19 @@ that's due.
 - `data/skill-questions.ts` plans the assistant's follow-ups from the check report in SKILL.md
   step 5's order, then asks to confirm "Needs review" values.
 - The Author with AI page (`/processing-activities/new`) still uses only `data/extract.ts`.
+
+## Recertification: the ropa-recertification skill
+
+Vendored at `.claude/skills/ropa-recertification` (see its `UPSTREAM.md`) from the same repo. Its
+code map and "Known quirks" describe the Solera app, not this one. Used only by the Recertification
+pages.
+
+- `data/recert-check.ts` is the skill's checks (`scripts/recert_check.py`) in TypeScript, ported
+  here, including the Python list/None formatting in messages. The Python script is the source of
+  truth. `npm run skill:parity` also runs `scripts/recert-parity.mjs`: both on the skill's example
+  submissions, edge cases, and the submissions the check-in builds from every record's example
+  answers (`parityCases()`), with `--today` fixed to `PROTOTYPE_TODAY`.
+- `data/recertification.ts`: records in the skill's `ProcessingActivity` shape (from the
+  Processing activities rows and `RECORD_PROFILES`; vendors vs systems by the inventory), the seven
+  topics and questions, the answer reader (`verdict`, `readChange`, `newOwnerIn`) and
+  `buildSubmission`. Send to privacy analyst runs the checks and refuses to send on errors.

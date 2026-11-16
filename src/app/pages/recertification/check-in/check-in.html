@@ -1,0 +1,318 @@
+@if (record(); as r) {
+  <app-page-header [title]="'Recertify: ' + r.name">
+    <p class="crumbs"><a routerLink="/recertification">Recertification</a> / Check-in</p>
+  </app-page-header>
+
+  <div class="layout">
+    <!-- Owner conversation (owner-chat-agent.md) -->
+    <oc-assistant-thread class="thread" label="Recertification check-in">
+      <div class="viewport" ocAssistantViewport #viewport="ocAssistantViewport" label="Check-in conversation">
+        <div class="turns">
+          @for (t of turns(); track t.id) {
+            @if (t.from === 'user') {
+              <oc-assistant-message from="user" author="You" [meta]="t.meta" [text]="t.text" (resend)="onResend(t.id, $event)">
+                <oc-avatar slot="avatar" size="sm" [initials]="userInitials" [label]="user" [showTooltip]="false" />
+              </oc-assistant-message>
+            } @else {
+              <oc-assistant-message from="assistant" author="Recertification assistant" [meta]="t.meta">
+                <oc-avatar slot="avatar" size="sm" label="Recertification assistant" [showTooltip]="false">
+                  <oc-icon name="ai-sparkles" />
+                </oc-avatar>
+                @if (streamState(t.id) === 'pending') {
+                  <oc-assistant-thinking label="The assistant is working on a reply" />
+                }
+                <span
+                  class="reply"
+                  [ocStream]="t.source ?? ''"
+                  (streamState)="setStreamState(t.id, $event)"
+                  (complete)="onStreamComplete(t.id)"
+                ></span>
+
+                @for (p of cardsFor(t); track p.id) {
+                  @if (p.status === 'pending') {
+                    <section class="card" [attr.aria-label]="'Proposed change: ' + proposalLabel(p)">
+                      <div class="card-head">
+                        <span class="card-title">Proposed change</span>
+                        <oc-badge size="sm" color="purple">Your call</oc-badge>
+                      </div>
+                      @if (p.kind === 'field') {
+                        <p class="card-label">{{ p.field!.label }}</p>
+                        @if (editing() === p.id) {
+                          <textarea
+                            oc-textarea
+                            rows="3"
+                            [attr.aria-label]="'New ' + p.field!.label.toLowerCase()"
+                            [ngModel]="editValue()"
+                            (ngModelChange)="editValue.set($event ?? '')"
+                          ></textarea>
+                          @if (listFields.has(p.field!.key)) {
+                            <p class="hint">Separate values with commas.</p>
+                          }
+                        } @else {
+                          <p class="diff">
+                            @if (p.field!.before) {
+                              <del>{{ p.field!.before }}</del>
+                            } @else {
+                              <span class="not-set">Not set</span>
+                            }
+                            <span class="arrow" aria-hidden="true">→</span>
+                            <ins>{{ p.field!.after }}</ins>
+                          </p>
+                        }
+                      } @else {
+                        <p class="rel">
+                          <oc-badge size="sm" [color]="p.relationship!.action === 'added' ? 'success' : 'destructive'">
+                            {{ p.relationship!.action === 'added' ? 'Add' : 'Remove' }}
+                          </oc-badge>
+                          <span class="sub">{{ relOwnerLabels[p.relationship!.type] }}</span>
+                          <strong>{{ p.relationship!.name }}</strong>
+                        </p>
+                      }
+                      <p class="reason">“{{ p.reason }}”</p>
+                      <div class="card-actions">
+                        @if (editing() === p.id) {
+                          <button oc-button variant="tertiary" size="sm" (click)="cancelEdit()">Cancel</button>
+                          <button oc-button variant="primary" size="sm" [disabled]="!editValue().trim()" (click)="saveEdit(p)">
+                            Save and apply
+                          </button>
+                        } @else {
+                          @if (p.kind === 'field') {
+                            <button oc-button variant="tertiary" size="sm" [disabled]="busy()" (click)="startEdit(p)">Edit</button>
+                          }
+                          <button oc-button variant="secondary" size="sm" [disabled]="busy()" (click)="skip(p)">No, skip</button>
+                          <button oc-button variant="primary" size="sm" [disabled]="busy()" (click)="apply(p)">Yes, apply</button>
+                        }
+                      </div>
+                    </section>
+                  } @else {
+                    <p class="decided" [class.skipped]="p.status === 'skipped'">
+                      <oc-icon [name]="p.status === 'applied' ? 'check' : 'xmark'" size="sm" />
+                      {{ p.status === 'applied' ? 'Applied' : 'Skipped' }}: {{ proposalLabel(p) }}
+                    </p>
+                  }
+                }
+              </oc-assistant-message>
+            }
+          }
+        </div>
+      </div>
+
+      @if (!viewport.atBottom()) {
+        <button oc-icon-button ocAssistantScrollToBottom class="jump" variant="secondary" size="sm" label="Jump to latest">
+          <oc-icon name="chevron-down" />
+        </button>
+      }
+
+      @switch (mode()) {
+        @case ('cards') {
+          <p class="footer-note" role="status">Apply or skip each proposed change to carry on.</p>
+        }
+        @case ('ready') {
+          <section class="send" aria-labelledby="send-title">
+            <h3 id="send-title">Ready to send for review</h3>
+            <p>
+              {{ applied().length ? applied().length + (applied().length === 1 ? ' change' : ' changes') : 'No changes: you confirmed the record is still accurate' }}{{ ownerNote() ? ', with your note' : '' }}.
+            </p>
+            @if (submitError().length) {
+              <ul class="errors">
+                @for (e of submitError(); track e) {
+                  <li>{{ e }}</li>
+                }
+              </ul>
+            }
+            <button oc-button variant="primary" [disabled]="busy()" (click)="sendToAnalyst()">
+              <oc-icon slot="leading" name="paper-plane" />
+              Send to privacy analyst
+            </button>
+          </section>
+        }
+        @case ('submitted') {
+          <div class="footer-actions">
+            <a oc-button variant="secondary" size="sm" routerLink="/recertification">Back to recertification</a>
+          </div>
+        }
+        @case ('paused') {
+          <div class="footer-actions">
+            <a oc-button variant="secondary" size="sm" routerLink="/recertification">Back to recertification</a>
+          </div>
+        }
+        @case ('closed') {
+          <div class="footer-actions">
+            <a oc-button variant="secondary" size="sm" routerLink="/recertification">Back to recertification</a>
+            <button oc-button variant="tertiary" size="sm" [disabled]="busy()" (click)="startAgain()">Start again</button>
+          </div>
+        }
+        @default {
+          @if (suggestions().length) {
+            <div class="suggestions" role="group" aria-label="Quick replies">
+              @for (s of suggestions(); track s) {
+                <button oc-assistant-suggestion [suggestion]="s" [setPromptOnClick]="false" (click)="onSend(s)"></button>
+              }
+            </div>
+          }
+          <oc-assistant-composer label="Answer the recertification assistant" (send)="onSend($event)">
+            <textarea oc-textarea ocAssistantInput rows="2" aria-label="Answer" [placeholder]="placeholder()"></textarea>
+            <div oc-assistant-actions>
+              <span slot="end">
+                @if (busy()) {
+                  <button oc-icon-button ocAssistantStop variant="secondary" size="sm" label="Stop" (stop)="stop()">
+                    <oc-icon name="circle-stop" />
+                  </button>
+                } @else {
+                  <button oc-icon-button ocAssistantSubmit variant="primary" size="sm" label="Send">
+                    <oc-icon name="paper-plane" />
+                  </button>
+                }
+              </span>
+            </div>
+          </oc-assistant-composer>
+        }
+      }
+    </oc-assistant-thread>
+
+    <!-- The record under review -->
+    <aside class="record" aria-labelledby="record-title">
+      <div class="record-scroll">
+        <div class="record-head">
+          <h2 id="record-title">{{ r.name }}</h2>
+          @switch (mode()) {
+            @case ('submitted') {
+              <oc-badge size="sm" color="info">With the analyst</oc-badge>
+            }
+            @case ('closed') {
+              <oc-badge size="sm" [color]="existing().open ? 'info' : 'purple'">{{ existing().open ? 'With the analyst' : 'Paused' }}</oc-badge>
+            }
+            @case ('paused') {
+              <oc-badge size="sm" color="purple">Paused</oc-badge>
+            }
+            @default {
+              <oc-badge size="sm" [color]="stateColor[review().state]">{{ stateLabel[review().state] }}</oc-badge>
+            }
+          }
+        </div>
+
+        <dl class="basics">
+          <div>
+            <dt>Last recertified</dt>
+            <dd>{{ date(r.lastReviewedAt) }}</dd>
+          </div>
+          <div>
+            <dt>Next review</dt>
+            <dd>{{ date(r.nextReviewAt) }}</dd>
+          </div>
+          <div>
+            <dt>Review cadence</dt>
+            <dd>{{ cadenceLabel(r.reviewCadenceDays) }}</dd>
+          </div>
+        </dl>
+
+        <section class="progress" aria-labelledby="topics-title">
+          <div class="progress-head">
+            <h3 id="topics-title">Check-in topics</h3>
+            <span class="sub">{{ checked() }}/{{ topics.length }} checked</span>
+          </div>
+          <oc-progress [value]="checked()" [max]="topics.length" label="Topics checked" />
+          <ol class="topics">
+            @for (t of topics; track t.key; let i = $index) {
+              <li [attr.data-state]="topicState(i)" [attr.aria-current]="topicState(i) === 'current' ? 'step' : null">
+                <span class="marker" aria-hidden="true">
+                  @switch (topicState(i)) {
+                    @case ('confirmed') {
+                      <oc-icon name="check" size="sm" />
+                    }
+                    @case ('changed') {
+                      <oc-icon name="check" size="sm" />
+                    }
+                    @default {
+                      {{ i + 1 }}
+                    }
+                  }
+                </span>
+                <span class="topic-text">
+                  <span class="topic-label">{{ t.label }}</span>
+                  <span class="sub">{{ t.detail }}</span>
+                </span>
+                @switch (topicState(i)) {
+                  @case ('confirmed') {
+                    <span class="topic-state">Still accurate</span>
+                  }
+                  @case ('changed') {
+                    <oc-badge size="sm" color="success">Changed</oc-badge>
+                  }
+                  @case ('paused') {
+                    <oc-badge size="sm" color="purple">Paused</oc-badge>
+                  }
+                  @case ('current') {
+                    <oc-badge size="sm" color="info">Now</oc-badge>
+                  }
+                }
+              </li>
+            }
+          </ol>
+        </section>
+
+        <h3>Record details</h3>
+        <ul class="fields">
+          @for (key of panelFields; track key) {
+            @let change = fieldChanges()[key];
+            <li [class.changed]="change">
+              <div class="field-head">
+                <span class="field-label">{{ fieldLabels[key] }}</span>
+                @if (change) {
+                  <oc-badge size="sm" [color]="change.status === 'applied' ? 'success' : 'purple'">
+                    {{ change.status === 'applied' ? 'Changed' : 'Proposed' }}
+                  </oc-badge>
+                }
+              </div>
+              @if (change) {
+                <p class="field-value">
+                  @if (change.field!.before) {
+                    <del>{{ change.field!.before }}</del>
+                  }
+                  <ins>{{ change.field!.after }}</ins>
+                </p>
+              } @else if (fieldValue(r, key)) {
+                <p class="field-value">{{ fieldValue(r, key) }}</p>
+              } @else {
+                <p class="field-value missing">Not set</p>
+              }
+            </li>
+          }
+        </ul>
+
+        @for (type of relGroups; track type) {
+          <h3>{{ relGroupLabels[type] }}</h3>
+          @if (relRows()[type]?.length) {
+            <ul class="links">
+              @for (row of relRows()[type]; track row.name) {
+                <li class="link" [attr.data-change]="row.change ?? null" [class.pending]="row.pending">
+                  @if (row.change === 'removed') {
+                    <del>{{ row.name }}</del>
+                  } @else {
+                    {{ row.name }}
+                  }
+                  @if (row.change) {
+                    <span class="link-note">{{ row.pending ? 'proposed' : row.change === 'added' ? 'added' : 'removed' }}</span>
+                  }
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="field-value missing">None linked</p>
+          }
+        }
+      </div>
+      <div class="record-foot">
+        <p>Nothing changes in the official record until a privacy analyst approves this check-in.</p>
+      </div>
+    </aside>
+  </div>
+} @else {
+  <app-page-header title="Recertify">
+    <p class="crumbs"><a routerLink="/recertification">Recertification</a> / Check-in</p>
+  </app-page-header>
+  <p class="not-found">
+    There's no active record with ID {{ id() }}. Archived and pending records aren't recertified.
+    <a routerLink="/recertification">Back to Recertification</a>
+  </p>
+}

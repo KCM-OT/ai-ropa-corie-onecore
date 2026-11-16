@@ -1,0 +1,49 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.description {
+  margin: 0;
+  max-width: 640px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--oc-spacing-3);
+  padding: var(--oc-spacing-4) var(--oc-spacing-5) var(--oc-spacing-2);
+}
+
+.view-picker {
+  width: 240px;
+}
+
+.count,
+.sub {
+  color: var(--oc-muted-foreground);
+  font-size: var(--oc-font-size-sm);
+}
+
+.table-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 var(--oc-spacing-5) var(--oc-spacing-5);
+}
+
+.due,
+.paused {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--oc-spacing-2);
+}
+
+// Fixed columns plus room for the Name column; narrower windows scroll sideways.
+.recert-table {
+  min-width: 1340px;
+}

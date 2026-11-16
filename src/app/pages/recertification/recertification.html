@@ -1,0 +1,97 @@
+<app-page-header title="Recertification" [stats]="stats()">
+  <p class="description">
+    Check in on each record when it's due. The business process owner confirms or corrects it in plain English,
+    and a privacy analyst approves the changes before the record is updated.
+  </p>
+</app-page-header>
+
+<div class="toolbar">
+  <div class="view-picker">
+    <oc-select
+      size="sm"
+      aria-label="View"
+      [displayWith]="viewLabel"
+      [ngModel]="view()"
+      (ngModelChange)="view.set($event)"
+    >
+      @for (v of views; track v.key) {
+        <oc-select-option [value]="v.key">{{ v.label }}</oc-select-option>
+      }
+    </oc-select>
+  </div>
+  <span class="count">{{ rows().length }} {{ rows().length === 1 ? 'record' : 'records' }}</span>
+</div>
+
+<div class="table-wrap">
+  <table class="data-table recert-table">
+    <colgroup>
+      <col style="width: 300px" />
+      <col style="width: 200px" />
+      <col style="width: 180px" />
+      <col style="width: 120px" />
+      <col style="width: 200px" />
+      <col style="width: 190px" />
+      <col style="width: 150px" />
+    </colgroup>
+    <thead>
+      <tr>
+        <th scope="col">Name</th>
+        <th scope="col">Business process owner</th>
+        <th scope="col">Managing organization</th>
+        <th scope="col">Last reviewed</th>
+        <th scope="col">Next review</th>
+        <th scope="col">Check-in</th>
+        <th scope="col"><span class="visually-hidden">Actions</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (r of rows(); track r.a.id) {
+        <tr>
+          <td>
+            <a class="cell-link" [routerLink]="['/recertification', r.a.id]" [title]="r.a.name">{{ r.a.name }}</a>
+          </td>
+          <td>
+            <span class="cell-person">
+              <oc-avatar size="sm" [initials]="initials(r.a.owner)" [label]="r.a.owner" [showTooltip]="false" />
+              {{ r.a.owner }}
+            </span>
+          </td>
+          <td [title]="r.rec.managingOrganization">{{ r.rec.managingOrganization }}</td>
+          <td class="num">{{ date(r.rec.lastReviewedAt) }}</td>
+          <td>
+            <span class="due">
+              <oc-badge size="sm" [color]="stateColor[r.state]">{{ stateLabel[r.state] }}</oc-badge>
+              <span class="num sub">{{ date(r.rec.nextReviewAt) }}</span>
+            </span>
+          </td>
+          <td>
+            @if (r.open) {
+              <oc-badge size="sm" color="info">With the analyst</oc-badge>
+            } @else if (r.pause) {
+              <span class="paused" [title]="'Paused for ' + r.pause.newOwner">
+                <oc-badge size="sm" color="purple">Paused</oc-badge>
+                <span class="sub">{{ r.pause.newOwner }}</span>
+              </span>
+            } @else {
+              <span class="sub">{{ dueText(r.days) }}</span>
+            }
+          </td>
+          <td class="right">
+            @if (r.open || r.pause) {
+              <a oc-button variant="tertiary" size="sm" [routerLink]="['/recertification', r.a.id]">View</a>
+            } @else {
+              <a oc-button variant="secondary" size="sm" [routerLink]="['/recertification', r.a.id]">
+                <oc-icon slot="leading" name="ai-sparkles" />
+                Recertify
+              </a>
+            }
+          </td>
+        </tr>
+      } @empty {
+        <tr class="empty-row">
+          <td colspan="7">Nothing is overdue or due in the next 30 days.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

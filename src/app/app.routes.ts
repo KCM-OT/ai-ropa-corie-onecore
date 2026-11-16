@@ -25,6 +25,16 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/ai-assisted/ai-assisted').then((m) => m.AiAssisted),
       },
       {
+        path: 'recertification',
+        title: 'Recertification | Data Mapping',
+        loadComponent: () => import('./pages/recertification/recertification').then((m) => m.Recertification),
+      },
+      {
+        path: 'recertification/:id',
+        title: 'Recertify | Data Mapping',
+        loadComponent: () => import('./pages/recertification/check-in/check-in').then((m) => m.RecertCheckIn),
+      },
+      {
         path: 'pending-inventory',
         title: 'Pending inventory | Data Mapping',
         loadComponent: () =>

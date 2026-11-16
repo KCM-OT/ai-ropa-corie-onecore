@@ -1,9 +1,10 @@
-// Checks that the vendored ropa-authoring skill (.claude/skills/ropa-authoring)
+// Checks that a vendored skill (.claude/skills/<name>, default ropa-authoring)
 // still matches the upstream repo's main branch. `npm run deploy` and
 // `npm run deploy:preview` run it first, so a deploy stops when the copy has
 // fallen behind.
 //
-//   npm run skill:upstream                       check, exit 1 if behind
+//   npm run skill:upstream                       check both skills, exit 1 if behind
+//   node scripts/skill-upstream.mjs <name>       check one skill
 //   SKILL_UPSTREAM_CHECK=warn npm run deploy     deploy anyway, with a warning
 //
 // It reads the source repo and path from the skill's UPSTREAM.md, fetches main
@@ -18,7 +19,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const skillDir = path.join(root, '.claude/skills/ropa-authoring');
+const skillName = process.argv[2] ?? 'ropa-authoring';
+const skillDir = path.join(root, '.claude/skills', skillName);
+// The TypeScript port of each skill's check script, kept in parity by `npm run skill:parity`.
+const PORTS = {
+  'ropa-authoring': 'src/app/data/ropa-check.ts if scripts/ropa_check.py',
+  'ropa-recertification': 'src/app/data/recert-check.ts if scripts/recert_check.py',
+};
 const cache = path.join(root, 'node_modules/.cache/skill-upstream');
 const mode = process.env.SKILL_UPSTREAM_CHECK ?? 'fail'; // 'fail' | 'warn' | 'off'
 
@@ -54,7 +61,7 @@ try {
 } catch (err) {
   const reason = String(err.stderr || err.message).split('\n').find(Boolean) ?? 'unknown error';
   console.warn(`⚠ skill:upstream: couldn't reach ${repoUrl} (${reason.trim()}).`);
-  console.warn('  The ropa-authoring skill was not checked against upstream. Carrying on.');
+  console.warn(`  The ${skillName} skill was not checked against upstream. Carrying on.`);
   process.exit(0);
 }
 
@@ -89,7 +96,7 @@ const removed = [...local.keys()].filter((f) => !upstream.has(f));
 
 if (!changed.length && !added.length && !removed.length) {
   const note = recorded && !head.startsWith(recorded) && !recorded.startsWith(head) ? ` (UPSTREAM.md records ${recorded})` : '';
-  console.log(`✓ ropa-authoring skill matches upstream main at ${head}${note}.`);
+  console.log(`✓ ${skillName} skill matches upstream main at ${head}${note}.`);
   process.exit(0);
 }
 
@@ -108,14 +115,14 @@ try {
 }
 
 const lines = [
-  `✖ The ropa-authoring skill is behind upstream main (${head}).`,
+  `✖ The ${skillName} skill is behind upstream main (${head}).`,
   ...changed.map((f) => `  changed upstream:  ${f}`),
   ...added.map((f) => `  new upstream:      ${f}`),
   ...removed.map((f) => `  removed upstream:  ${f}`),
   ...(commits ? ['', `Upstream commits since ${recorded}:`, commits] : []),
   '',
   'To update: copy the folder again from main, keep UPSTREAM.md and change its commit, then run',
-  '`npm run skill:parity` (and update src/app/data/ropa-check.ts if scripts/ropa_check.py changed).',
+  `\`npm run skill:parity\` (and update ${PORTS[skillName] ?? 'the app'} changed).`,
   'To deploy anyway: SKILL_UPSTREAM_CHECK=warn npm run deploy',
 ];
 

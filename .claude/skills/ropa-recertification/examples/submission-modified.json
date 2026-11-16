@@ -1,0 +1,54 @@
+{
+  "id": "sub-recruit-2026",
+  "recordId": "pa-recruitment",
+  "recordName": "AI-Assisted Candidate Screening & Recruitment",
+  "submittedBy": "Elena Marín",
+  "submittedRole": "Global Talent Acquisition",
+  "submittedAt": "2026-11-15T10:00:00.000Z",
+  "status": "pending_review",
+  "decision": "modified",
+  "ownerNote": "We retired Zoom for interviews and moved to HireVue for recorded video interviews. We also stopped collecting government ID at the application stage. We are starting to capture candidate work authorization status.",
+  "fieldChanges": [
+    {
+      "key": "retentionPeriod",
+      "label": "Retention period",
+      "before": "12 months after requisition closure; retain hired-candidate records in HRIS",
+      "after": "9 months after requisition closure; retain hired-candidate records in HRIS"
+    }
+  ],
+  "relationshipChanges": [
+    { "action": "added", "type": "vendor", "name": "HireVue", "inventoryId": null },
+    { "action": "removed", "type": "vendor", "name": "Zoom", "inventoryId": "ven-zoom" },
+    { "action": "added", "type": "personalData", "name": "Work authorization status", "inventoryId": null },
+    { "action": "removed", "type": "personalData", "name": "Government ID number", "inventoryId": "pdc-govid" }
+  ],
+  "followUps": [
+    {
+      "id": "fu-1",
+      "question": "Does HireVue have a signed DPA in place, and where is recorded-interview data hosted?",
+      "channel": "teams",
+      "audience": "vendor_owner",
+      "recipient": "Procurement — Vendor Risk",
+      "status": "answered",
+      "aiGenerated": true,
+      "createdAt": "2026-11-15T11:00:00.000Z",
+      "sentAt": "2026-11-15T11:00:00.000Z",
+      "answeredAt": "2026-11-16T08:00:00.000Z",
+      "response": "DPA signed. EU data hosted in Frankfurt; US processing covered by SCCs."
+    },
+    {
+      "id": "fu-2",
+      "question": "You added work authorization status. Is this collected for all candidates or only for specific roles or regions?",
+      "channel": "slack",
+      "audience": "business_process_owner",
+      "recipient": "Elena Marín",
+      "status": "sent",
+      "aiGenerated": true,
+      "createdAt": "2026-11-16T08:30:00.000Z",
+      "sentAt": "2026-11-16T08:30:00.000Z",
+      "answeredAt": null,
+      "response": null
+    }
+  ],
+  "aiSummary": null
+}

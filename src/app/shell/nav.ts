@@ -12,6 +12,7 @@ export interface NavLink {
 
 export const NAV: NavLink[] = [
   { label: 'Inbox', href: '/inbox', icon: 'inbox' },
+  { label: 'Recertification', href: '/recertification', icon: 'arrows-rotate' },
   { label: 'Projects', href: '/projects', icon: 'folder-open' },
 ];
 

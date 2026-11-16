@@ -10,8 +10,8 @@
     "onecore": "onecore",
     "deploy:preview": "npm run skill:upstream && vercel build && vercel deploy --prebuilt",
     "deploy": "npm run skill:upstream && vercel build --prod && vercel deploy --prebuilt --prod",
-    "skill:parity": "node scripts/skill-parity.mjs",
-    "skill:upstream": "node scripts/skill-upstream.mjs"
+    "skill:parity": "node scripts/skill-parity.mjs && node scripts/recert-parity.mjs",
+    "skill:upstream": "node scripts/skill-upstream.mjs ropa-authoring && node scripts/skill-upstream.mjs ropa-recertification"
   },
   "prettier": {
     "printWidth": 100,
