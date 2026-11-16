@@ -49,6 +49,13 @@ import {
   type Proposal,
   type TopicKey,
 } from '../../../data/recertification';
+import {
+  keepReceivedRecord,
+  readRecertHandoff,
+  RECERT_HANDOFF_PARAM,
+  receivedRecord,
+  type ReceivedRecord,
+} from '../../../data/recert-handoff';
 import { PageHeader } from '../../../shell/page-header';
 
 // Owner check-in for one record (/recertification/:id): the
@@ -191,7 +198,10 @@ export class RecertCheckIn {
   /** Route param (withComponentInputBinding). */
   readonly id = input.required<string>();
 
-  protected readonly record = computed(() => recertRecordById(Number(this.id())));
+  /** A record sent from Data Mapping for this ID (data/recert-handoff.ts), used instead of this app's copy. */
+  protected readonly received = signal<ReceivedRecord | undefined>(undefined);
+  protected readonly receiveError = signal('');
+  protected readonly record = computed(() => this.received()?.record ?? recertRecordById(Number(this.id())));
   protected readonly review = computed(() => {
     const r = this.record();
     return r ? recordReviewState(r) : { state: 'none' as const, days: null };
@@ -312,9 +322,30 @@ export class RecertCheckIn {
   constructor() {
     // Open (or reopen) the conversation for the record in the URL.
     effect(() => {
-      const r = this.record();
-      untracked(() => this.#start(r !== undefined));
+      const id = this.id();
+      untracked(() => {
+        this.#receive(id);
+        this.#start(this.record() !== undefined);
+      });
     });
+  }
+
+  /** Takes a record sent in the URL fragment (#recert-record=…), or one received earlier for this ID. */
+  #receive(id: string): void {
+    this.receiveError.set('');
+    let received: ReceivedRecord | undefined;
+    try {
+      const fresh = readRecertHandoff(location.hash, id);
+      if (fresh) {
+        keepReceivedRecord(id, fresh);
+        received = fresh;
+      }
+    } catch (e) {
+      this.receiveError.set(e instanceof Error ? e.message : "The record sent from Data Mapping couldn't be read.");
+    }
+    // Drop the package from the address bar so a reload or shared link doesn't carry it.
+    if (location.hash.includes(RECERT_HANDOFF_PARAM)) history.replaceState(history.state, '', location.pathname + location.search);
+    this.received.set(received ?? receivedRecord(id));
   }
 
   // ---- Template helpers ----

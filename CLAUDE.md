@@ -53,6 +53,15 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
   include a realistic example change for each topic. Submissions (`pending_review`) and pauses live
   in `data/recert.store.ts` (localStorage); nothing changes the record because the analyst side
   (review, follow-ups, commit) isn't built yet.
+  **From Data Mapping:** the Vitreus prototype's Inventory Maintenance → Recertify → "Continue to
+  AI assisted re-certification" opens `/recertification/<id>` here with the record as JSON in the
+  URL fragment (`#recert-record=…`, `format: "onetrust.recert-handoff"`, version 1, the skill's
+  record shape). `data/recert-handoff.ts` checks and caps every value (it comes from another site;
+  the record ID must match the route), resolves linked items against this app's inventory, keeps it
+  in localStorage by ID and clears the fragment. The check-in then uses those details instead of this
+  app's copy, and the record panel says where they came from; a bad package shows a message and
+  falls back to this app's copy. The sender is `lib/authoring/recert-handoff.ts` in
+  KCM-OT/ai-ropa-datamapping; change both together.
 - `/pending-inventory`: pending records plus AI drafts (from `DraftsStore`, kept in localStorage).
 - `/ai-assisted-ropa`: AI Assisted RoPA Creation, the home page (`/` redirects here). Reached from
   the sidebar's New chat and Chats, and from the Add processing activity menu. It opens on a

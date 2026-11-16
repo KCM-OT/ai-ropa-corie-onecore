@@ -191,6 +191,16 @@
           }
         </div>
 
+        @if (received(); as rr) {
+          <p class="source">
+            <oc-icon name="arrow-up-right-from-square" size="sm" />
+            Details from {{ rr.sourceApp }}, received {{ date(rr.receivedAt) }}
+          </p>
+        }
+        @if (receiveError()) {
+          <p class="source error" role="alert">{{ receiveError() }} Showing this app's copy of the record.</p>
+        }
+
         <dl class="basics">
           <div>
             <dt>Last recertified</dt>
@@ -312,6 +322,9 @@
     <p class="crumbs"><a routerLink="/recertification">Recertification</a> / Check-in</p>
   </app-page-header>
   <p class="not-found">
+    @if (receiveError()) {
+      {{ receiveError() }}
+    }
     There's no active record with ID {{ id() }}. Archived and pending records aren't recertified.
     <a routerLink="/recertification">Back to Recertification</a>
   </p>

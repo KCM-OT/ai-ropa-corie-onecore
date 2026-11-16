@@ -83,7 +83,7 @@ const JURISDICTION: Record<string, string> = {
   'sub-apac': 'Singapore',
 };
 
-function inventoryId(type: RelType, name: string): string | null {
+export function inventoryId(type: RelType, name: string): string | null {
   const k = name.trim().toLowerCase();
   return RECERT_INVENTORY[POOL[type]]?.find((i) => i.name.trim().toLowerCase() === k)?.id ?? null;
 }
