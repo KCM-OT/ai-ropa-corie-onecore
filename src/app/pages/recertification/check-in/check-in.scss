@@ -24,7 +24,8 @@
 
 .thread {
   position: relative;
-  flex: 0 0 45%;
+  // 30/70: the conversation takes 30%, the record panel the other 70%.
+  flex: 0 0 30%;
   min-width: 320px;
 }
 
