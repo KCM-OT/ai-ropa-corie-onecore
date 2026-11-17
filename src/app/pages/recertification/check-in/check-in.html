@@ -190,7 +190,11 @@
               <oc-badge size="sm" color="purple">Paused</oc-badge>
             }
             @default {
-              <oc-badge size="sm" [color]="stateColor[review().state]">{{ stateLabel[review().state] }}</oc-badge>
+              @if (existing().changes) {
+                <oc-badge size="sm" color="warning">Changes requested</oc-badge>
+              } @else {
+                <oc-badge size="sm" [color]="stateColor[review().state]">{{ stateLabel[review().state] }}</oc-badge>
+              }
             }
           }
         </div>
@@ -203,6 +207,9 @@
         }
         @if (receiveError()) {
           <p class="source error" role="alert">{{ receiveError() }} Showing this app's copy of the record.</p>
+        }
+        @if (decisionError()) {
+          <p class="source error" role="alert">{{ decisionError() }}</p>
         }
 
         <dl class="basics">

@@ -58,6 +58,7 @@ import {
 } from '../../../data/recert-handoff';
 import { PageHeader } from '../../../shell/page-header';
 import { openRecertResult } from '../../../data/recert-result';
+import { readRecertDecision, RECERT_DECISION_PARAM } from '../../../data/recert-decision';
 
 // Owner check-in for one record (/recertification/:id): the
 // ropa-recertification skill's owner chat (SKILL.md steps 3–7,
@@ -202,6 +203,8 @@ export class RecertCheckIn {
   /** A record sent from Data Mapping for this ID (data/recert-handoff.ts), used instead of this app's copy. */
   protected readonly received = signal<ReceivedRecord | undefined>(undefined);
   protected readonly receiveError = signal('');
+  /** A malformed reply from the privacy analyst (#recert-decision=…). */
+  protected readonly decisionError = signal('');
   protected readonly record = computed(() => this.received()?.record ?? recertRecordById(Number(this.id())));
   protected readonly review = computed(() => {
     const r = this.record();
@@ -254,7 +257,9 @@ export class RecertCheckIn {
   protected readonly pendingCards = computed(() => this.proposals().filter((p) => p.status === 'pending'));
   protected readonly existing = computed(() => {
     const r = this.record();
-    return r ? { open: this.#store.openSubmission(r.id), pause: this.#store.pause(r.id) } : {};
+    return r
+      ? { open: this.#store.openSubmission(r.id), pause: this.#store.pause(r.id), changes: this.#store.changesRequested(r.id) }
+      : {};
   });
 
   /** Quick replies for the current step (the owner can always type instead). */
@@ -344,8 +349,18 @@ export class RecertCheckIn {
     } catch (e) {
       this.receiveError.set(e instanceof Error ? e.message : "The record sent from Data Mapping couldn't be read.");
     }
-    // Drop the package from the address bar so a reload or shared link doesn't carry it.
-    if (location.hash.includes(RECERT_HANDOFF_PARAM)) history.replaceState(history.state, '', location.pathname + location.search);
+    // The privacy analyst's request for changes, from Data Mapping's Recertification review.
+    this.decisionError.set('');
+    try {
+      const decision = readRecertDecision(location.hash, id);
+      if (decision) this.#store.addDecision(decision);
+    } catch (e) {
+      this.decisionError.set(e instanceof Error ? e.message : "The privacy analyst's reply couldn't be read.");
+    }
+    // Drop the packages from the address bar so a reload or shared link doesn't carry them.
+    if (location.hash.includes(RECERT_HANDOFF_PARAM) || location.hash.includes(RECERT_DECISION_PARAM)) {
+      history.replaceState(history.state, '', location.pathname + location.search);
+    }
     this.received.set(received ?? receivedRecord(id));
   }
 
@@ -685,6 +700,16 @@ export class RecertCheckIn {
         : state === 'due_soon'
           ? `, and it's due in ${plural(days ?? 0, 'day')}`
           : ". It isn't due yet, but you can check in early";
+    const changes = this.existing().changes;
+    if (changes) {
+      return {
+        text:
+          `Hi ${first}. ${changes.decidedBy}, the privacy analyst, looked at your check-in for "${r.name}" on ${this.date(changes.decidedAt)} and asked for changes:\n\n` +
+          `“${changes.question}”\n\n` +
+          "Let's go through the seven questions again with that in mind. Nothing has changed in the official record yet.\n\n" +
+          topicQuestion('ownership', r),
+      };
+    }
     return {
       text:
         `Hi ${first}. This is the check-in for "${r.name}": you use it to ${r.purpose ? r.purpose.charAt(0).toLowerCase() + r.purpose.slice(1) : 'run this process'}, ` +

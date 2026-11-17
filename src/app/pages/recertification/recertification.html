@@ -67,6 +67,11 @@
           <td>
             @if (r.open) {
               <oc-badge size="sm" color="info">With the analyst</oc-badge>
+            } @else if (r.changes) {
+              <span class="paused" [title]="r.changes.decidedBy + ': ' + r.changes.question">
+                <oc-badge size="sm" color="warning">Changes requested</oc-badge>
+                <span class="sub">{{ r.changes.decidedBy }}</span>
+              </span>
             } @else if (r.pause) {
               <span class="paused" [title]="'Paused for ' + r.pause.newOwner">
                 <oc-badge size="sm" color="purple">Paused</oc-badge>

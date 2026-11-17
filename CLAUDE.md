@@ -55,8 +55,14 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
   the Vitreus prototype's `/recertification-review` in a new tab with the submission and its check
   report in the URL fragment (`#recert-result=…`, `format: "onetrust.recert-result"`, version 1,
   `data/recert-result.ts`; localhost:3000 when running locally). The privacy analyst approves it or
-  asks for changes there; nothing comes back to this app, so a check-in here stays "With the
-  analyst". "Open in Data Mapping" in the footer sends it again (blocked popup, closed tab). The
+  asks for changes there. **Changes requested:** Data Mapping's Request changes opens
+  `/recertification/<id>` here with the analyst's question (`#recert-decision=…`,
+  `format: "onetrust.recert-decision"`, version 1, `data/recert-decision.ts`; checked against the
+  route) and the record's current details. `RecertStore.addDecision` marks the submission
+  `changes_requested`; until the owner sends a newer check-in, the check-in opens with the question
+  and a fresh run-through, and it shows "Changes requested" in the panel and on the Recertification
+  list. The sender is `lib/authoring/recert-decision.ts` in that repo. Approvals don't come back
+  yet, so an approved check-in still shows "With the analyst" here. "Open in Data Mapping" in the footer sends it again (blocked popup, closed tab). The
   receiver is `lib/authoring/recert-result.ts` in KCM-OT/ai-ropa-datamapping; change both together.
   **From Data Mapping:** the Vitreus prototype's Inventory Maintenance → Recertify → "Continue to
   AI assisted re-certification" opens `/recertification/<id>` here with the record as JSON in the

@@ -51,7 +51,8 @@ export class Recertification {
       const { state, days } = recordReviewState(rec);
       const open = this.#store.openSubmission(rec.id);
       const pause = this.#store.pause(rec.id);
-      return { a, rec, state, days, open, pause };
+      const changes = this.#store.changesRequested(rec.id);
+      return { a, rec, state, days, open, pause, changes };
     }).sort((x, y) => (x.days ?? Infinity) - (y.days ?? Infinity)),
   );
 
