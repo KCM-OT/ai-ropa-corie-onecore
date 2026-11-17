@@ -57,6 +57,7 @@ import {
   type ReceivedRecord,
 } from '../../../data/recert-handoff';
 import { PageHeader } from '../../../shell/page-header';
+import { openRecertResult } from '../../../data/recert-result';
 
 // Owner check-in for one record (/recertification/:id): the
 // ropa-recertification skill's owner chat (SKILL.md steps 3–7,
@@ -467,10 +468,19 @@ export class RecertCheckIn {
       this.submitError.set(check.errors);
       return;
     }
+    // Open Data Mapping's Recertification review first, synchronously in the click, so popup blockers allow it.
+    openRecertResult(submission, check);
     this.#store.submit({ submission, check });
     this.submitted.set(submission);
     this.mode.set('submitted');
     this.#reply({ type: 'open' });
+  }
+
+  /** Send the open submission to Data Mapping again (for a blocked popup, or a closed tab). */
+  protected openInDataMapping(): void {
+    const r = this.record();
+    const open = r && this.#store.openSubmission(r.id);
+    if (open) openRecertResult(open.submission, open.check);
   }
 
   /** Prototype reset: forget this record's submission or pause and start again. */

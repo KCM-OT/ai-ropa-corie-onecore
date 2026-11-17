@@ -51,8 +51,13 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
   optional note, and Send to privacy analyst. It stays separate from the AI Assisted page and its
   composer. Answers are read with rules in `data/recertification.ts` (no model); quick-reply chips
   include a realistic example change for each topic. Submissions (`pending_review`) and pauses live
-  in `data/recert.store.ts` (localStorage); nothing changes the record because the analyst side
-  (review, follow-ups, commit) isn't built yet.
+  in `data/recert.store.ts` (localStorage). **To Data Mapping:** Send to privacy analyst also opens
+  the Vitreus prototype's `/recertification-review` in a new tab with the submission and its check
+  report in the URL fragment (`#recert-result=…`, `format: "onetrust.recert-result"`, version 1,
+  `data/recert-result.ts`; localhost:3000 when running locally). The privacy analyst approves it or
+  asks for changes there; nothing comes back to this app, so a check-in here stays "With the
+  analyst". "Open in Data Mapping" in the footer sends it again (blocked popup, closed tab). The
+  receiver is `lib/authoring/recert-result.ts` in KCM-OT/ai-ropa-datamapping; change both together.
   **From Data Mapping:** the Vitreus prototype's Inventory Maintenance → Recertify → "Continue to
   AI assisted re-certification" opens `/recertification/<id>` here with the record as JSON in the
   URL fragment (`#recert-record=…`, `format: "onetrust.recert-handoff"`, version 1, the skill's

@@ -129,6 +129,7 @@
         @case ('submitted') {
           <div class="footer-actions">
             <a oc-button variant="secondary" size="sm" routerLink="/recertification">Back to recertification</a>
+            <button oc-button variant="tertiary" size="sm" (click)="openInDataMapping()">Open in Data Mapping</button>
           </div>
         }
         @case ('paused') {
@@ -139,6 +140,9 @@
         @case ('closed') {
           <div class="footer-actions">
             <a oc-button variant="secondary" size="sm" routerLink="/recertification">Back to recertification</a>
+            @if (existing().open) {
+              <button oc-button variant="tertiary" size="sm" (click)="openInDataMapping()">Open in Data Mapping</button>
+            }
             <button oc-button variant="tertiary" size="sm" [disabled]="busy()" (click)="startAgain()">Start again</button>
           </div>
         }
