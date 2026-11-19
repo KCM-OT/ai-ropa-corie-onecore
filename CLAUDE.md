@@ -48,7 +48,9 @@ Ported from the React/Vitreus prototype in `../ai-ropa-datamapping` (same data a
   fixed order, one yes/no question each; a "No" gets exactly "Please tell us what has changed";
   changes become before/after cards (Yes, apply / Edit for field changes / No, skip); a named new
   owner gets the pause question; then the recap (`templates/recertification-submission.md`), an
-  optional note, and Send to privacy analyst. It stays separate from the AI Assisted page and its
+  optional note, and Send to privacy analyst, which first asks "Send to privacy analyst?" in an
+  `oc-dialog` modelled on AI Assisted RoPA's "Send to Pending inventory?" (what happens next, in
+  three steps; Cancel or Send and open Data Mapping). It stays separate from the AI Assisted page and its
   composer. Answers are read with rules in `data/recertification.ts` (no model); quick-reply chips
   include a realistic example change for each topic. Submissions (`pending_review`) and pauses live
   in `data/recert.store.ts` (localStorage). **To Data Mapping:** Send to privacy analyst also opens

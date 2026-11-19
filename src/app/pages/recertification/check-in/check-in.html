@@ -120,10 +120,37 @@
                 }
               </ul>
             }
-            <button oc-button variant="primary" [disabled]="busy()" (click)="sendToAnalyst()">
+            <button oc-button variant="primary" [disabled]="busy()" [ocDialogTrigger]="confirmSend">
               <oc-icon slot="leading" name="paper-plane" />
               Send to privacy analyst
             </button>
+            <!-- Same confirmation as AI Assisted RoPA's "Send to Pending inventory?" (ai-assisted.html). -->
+            <ng-template #confirmSend let-close="close">
+              <oc-dialog>
+                <oc-dialog-header>
+                  <h2 ocDialogTitle>Send to privacy analyst?</h2>
+                  <p ocDialogDescription>
+                    We'll take you to Recertification review in Data Mapping in a new tab. This page stays open here.
+                  </p>
+                </oc-dialog-header>
+                <ol class="confirm-steps">
+                  <li>Data Mapping opens on Recertification review.</li>
+                  <li>
+                    Your check-in for {{ record()?.name || 'this record' }} is there, with
+                    {{ applied().length ? applied().length + (applied().length === 1 ? ' proposed change' : ' proposed changes') : 'no changes' }}{{ ownerNote() ? ' and your note' : '' }}.
+                  </li>
+                  <li>
+                    The privacy analyst approves it or asks for changes. The record isn't updated until they approve.
+                  </li>
+                </ol>
+                <oc-dialog-footer>
+                  <button oc-button variant="secondary" (click)="close()">Cancel</button>
+                  <button oc-button variant="primary" (click)="sendToAnalyst(); close()">
+                    Send and open Data Mapping
+                  </button>
+                </oc-dialog-footer>
+              </oc-dialog>
+            </ng-template>
           </section>
         }
         @case ('submitted') {

@@ -18,6 +18,14 @@ import { OcAvatar } from '@onetrust/onecore/avatar';
 import { OcBadge } from '@onetrust/onecore/badge';
 import { OcButton } from '@onetrust/onecore/button';
 import { OcStreamDirective, type ChoreoState } from '@onetrust/onecore/choreography';
+import {
+  OcDialog,
+  OcDialogDescription,
+  OcDialogFooter,
+  OcDialogHeader,
+  OcDialogTitle,
+  OcDialogTrigger,
+} from '@onetrust/onecore/dialog';
 import { OcIcon } from '@onetrust/onecore/icon';
 import { OcIconButton } from '@onetrust/onecore/icon-button';
 import { OcProgress } from '@onetrust/onecore/progress';
@@ -184,6 +192,12 @@ function cadenceLabel(days: number | null | undefined): string {
     OcAvatar,
     OcBadge,
     OcButton,
+    OcDialog,
+    OcDialogDescription,
+    OcDialogFooter,
+    OcDialogHeader,
+    OcDialogTitle,
+    OcDialogTrigger,
     OcIcon,
     OcIconButton,
     OcProgress,
