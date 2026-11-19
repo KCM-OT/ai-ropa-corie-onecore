@@ -339,8 +339,15 @@ h3 {
     border-radius: var(--oc-radius-md);
 
     &[data-state='current'] {
-      background: var(--oc-secondary-light-hover);
+      background: var(--oc-supportive-yellow-light);
     }
+  }
+
+  // The "Now" badge on the topic in focus, in the same yellow as its highlight.
+  oc-badge.now {
+    border-color: var(--oc-supportive-yellow);
+    background: var(--oc-supportive-yellow-light);
+    color: var(--oc-supportive-yellow);
   }
 }
 
